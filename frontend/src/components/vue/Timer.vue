@@ -43,6 +43,6 @@ function saveSession(session) {
 </script>
 
 <template>
-  <button @click="start">Start</button>
-  <button @click="stop">Stop</button>
+  <button class="btn btn-accent" @click="start">Start</button>
+  <button class="btn btn-pri" @click="stop">Stop</button>
 </template>
