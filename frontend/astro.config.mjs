@@ -1,8 +1,13 @@
 import { defineConfig } from 'astro/config'
 import vue from '@astrojs/vue'
 import { VitePWA } from '@vite-pwa/astro'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
   integrations: [
     vue(),
     VitePWA({
