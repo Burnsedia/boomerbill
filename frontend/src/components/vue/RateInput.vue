@@ -1,7 +1,13 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
-const rate = ref(localStorage.getItem('boomerbill_rate') || 75)
+const rate = ref(75)
+
+// ✅ browser-only
+onMounted(() => {
+  const saved = localStorage.getItem('boomerbill_rate')
+  if (saved) rate.value = Number(saved)
+})
 
 watch(rate, (val) => {
   localStorage.setItem('boomerbill_rate', val)
