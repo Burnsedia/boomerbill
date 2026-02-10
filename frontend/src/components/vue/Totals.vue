@@ -1,28 +1,28 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-
-const sessions = ref([])
-
-// ✅ browser-only
-onMounted(() => {
-  sessions.value = JSON.parse(
-    localStorage.getItem('boomerbill_sessions') || '[]'
-  )
-})
-
-const totals = computed(() => {
-  return sessions.value.reduce(
-    (acc, s) => {
-      acc.minutes += s.minutes
-      acc.cost += s.cost
-      return acc
-    },
-    { minutes: 0, cost: 0 }
-  )
-})
+import { useBoomerBill } from './store/boomerbills'
+const store = useBoomerBill()
 </script>
 
 <template>
-  <p>Total Time: {{ totals.minutes }} minutes</p>
-  <p>Total Cost: ${{ totals.cost.toFixed(2) }}</p>
+  <div class="stats shadow">
+
+    <div class="stat">
+      <div class="stat-title">Incidents</div>
+      <div class="stat-value font-mono">
+        {{ store.incidentCount }}
+      </div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-title">Total Damage</div>
+      <div class="stat-value font-mono text-error">
+        ${{ store.totals.cost.toFixed(2) }}
+      </div>
+    </div>
+
+  </div>
+
+  <p class="text-xs opacity-60 mt-2">
+    {{ store.weeklySummary }}
+  </p>
 </template>

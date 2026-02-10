@@ -1,48 +1,34 @@
 <script setup>
-import { ref } from 'vue'
+import { useBoomerBill } from './store/boomerbills'
+const store = useBoomerBill()
 
-const startTime = ref(null)
-
-function start() {
-  startTime.value = Date.now()
-}
-
-function stop() {
-  if (!startTime.value) return
-
-  const end = Date.now()
-  const minutes = Math.max(
-    1,
-    Math.round((end - startTime.value) / 60000)
-  )
-
-  const rate = Number(localStorage.getItem('boomerbill_rate') || 75)
-  const cost = (minutes / 60) * rate
-
-  const session = {
-    started_at: startTime.value,
-    ended_at: end,
-    minutes,
-    hourly_rate: rate,
-    cost
-  }
-
-  saveSession(session)
-  startTime.value = null
-}
-
-function saveSession(session) {
-  const sessions =
-    JSON.parse(localStorage.getItem('boomerbill_sessions') || '[]')
-  sessions.push(session)
-  localStorage.setItem(
-    'boomerbill_sessions',
-    JSON.stringify(sessions)
-  )
-}
+const presets = [
+  { label: 'Just one quick thing', min: 5 },
+  { label: 'Wi-Fi stopped working', min: 15 },
+  { label: 'Printer issue', min: 30 },
+  { label: 'I broke something', min: 60 }
+]
 </script>
 
 <template>
-  <button class="btn btn-accent" @click="start">Start</button>
-  <button class="btn btn-pri" @click="stop">Stop</button>
+  <div class="flex gap-2">
+    <button class="btn btn-success" :disabled="store.startTime" @click="store.start">
+      Start
+    </button>
+
+    <button class="btn btn-error" :disabled="!store.startTime" @click="store.stop()">
+      Stop
+    </button>
+  </div>
+
+  <p v-if="store.startTime" class="text-xs text-warning mt-2">
+    You are currently losing money.
+  </p>
+
+  <div class="flex flex-wrap gap-2 mt-3">
+    <button v-for="p in presets" :key="p.label" class="btn btn-xs btn-outline"
+      @click="store.addSession(p.min, p.label)">
+      {{ p.label }} ({{ p.min }}m)
+    </button>
+  </div>
 </template>

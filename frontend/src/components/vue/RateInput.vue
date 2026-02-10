@@ -1,23 +1,18 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-
-const rate = ref(75)
-
-// ✅ browser-only
-onMounted(() => {
-  const saved = localStorage.getItem('boomerbill_rate')
-  if (saved) rate.value = Number(saved)
-})
-
-watch(rate, (val) => {
-  localStorage.setItem('boomerbill_rate', val)
-})
+import { useBoomerBill } from './store/boomerbills'
+const store = useBoomerBill()
 </script>
 
 <template>
-  <label>
-    Hourly Rate ($)
-    <small>(default: avg US developer)</small>
-  </label>
-  <input type="number" v-model="rate" />
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text">Hourly Rate</span>
+    </label>
+
+    <input type="number" class="input input-bordered" v-model.number="store.rate" min="1" />
+
+    <p class="text-xs opacity-60 mt-1">
+      Default is average US developer rate.
+    </p>
+  </div>
 </template>
