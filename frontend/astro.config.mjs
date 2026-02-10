@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config'
 import vue from '@astrojs/vue'
-import { VitePWA } from '@vite-pwa/astro'
+import pwa from '@vite-pwa/astro'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
 
   integrations: [
     vue(),
-    VitePWA({
+    pwa({
       registerType: 'autoUpdate',
       manifest: {
         name: 'BoomerBill',
@@ -23,4 +23,3 @@ export default defineConfig({
     })
   ]
 })
-
