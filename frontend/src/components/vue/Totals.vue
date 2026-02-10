@@ -1,11 +1,17 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+
+const sessions = ref([])
+
+// ✅ browser-only
+onMounted(() => {
+  sessions.value = JSON.parse(
+    localStorage.getItem('boomerbill_sessions') || '[]'
+  )
+})
 
 const totals = computed(() => {
-  const sessions =
-    JSON.parse(localStorage.getItem('boomerbill_sessions') || '[]')
-
-  return sessions.reduce(
+  return sessions.value.reduce(
     (acc, s) => {
       acc.minutes += s.minutes
       acc.cost += s.cost
