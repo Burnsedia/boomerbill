@@ -1,17 +1,10 @@
 ---
-const title = "BoomerBill"
+import Layout from '../layouts/Layout.astro';
+import AppVue from '../components/vue/App.vue';
+// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
+// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
-<html>
-  <head>
-    <title>{title}</title>
-  </head>
-  <body>
-    <h1>BoomerBill</h1>
-    <p>
-      Tracks unpaid family tech support and calculates
-      the opportunity cost.
-    </p>
 
-    <a href="/app">Open the app →</a>
-  </body>
-</html>
+<Layout>
+  <AppVue client:load />
+</Layout>
