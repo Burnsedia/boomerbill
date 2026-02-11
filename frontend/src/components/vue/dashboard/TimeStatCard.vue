@@ -1,23 +1,15 @@
 <script setup lang="ts">
-defineProps<{
+interface Props {
   title: string
   minutes: number
   cost: number
   count: number
-}>()
-
-function formatMinutes(mins: number): string {
-  const hours = Math.floor(mins / 60)
-  const minutes = mins % 60
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-  return `${minutes}m`
+  comparison?: { change: number; percentChange: number; direction: 'up' | 'down' | 'same' }
 }
 
-function formatCost(cost: number): string {
-  return cost.toFixed(2)
-}
+const props = withDefaults(defineProps<Props>(), {
+  comparison: undefined
+})
 </script>
 
 <template>

@@ -15,6 +15,7 @@ const store = useBoomerBill()
         :minutes="store.todayStats.minutes"
         :cost="store.todayStats.cost"
         :count="store.todayStats.count"
+        :comparison="store.todayTrend"
       />
       
       <TimeStatCard
@@ -22,6 +23,7 @@ const store = useBoomerBill()
         :minutes="store.weekStats.minutes"
         :cost="store.weekStats.cost"
         :count="store.weekStats.count"
+        :comparison="store.weekTrend"
       />
       
       <TimeStatCard
@@ -29,6 +31,7 @@ const store = useBoomerBill()
         :minutes="store.monthStats.minutes"
         :cost="store.monthStats.cost"
         :count="store.monthStats.count"
+        :comparison="store.monthTrend"
       />
       
       <TimeStatCard
@@ -36,6 +39,7 @@ const store = useBoomerBill()
         :minutes="store.yearStats.minutes"
         :cost="store.yearStats.cost"
         :count="store.yearStats.count"
+        :comparison="store.yearTrend"
       />
     </div>
     

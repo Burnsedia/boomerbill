@@ -174,6 +174,49 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   })
 
   // ─────────────────────────────────────────────
+  // TREND COMPUTATIONS
+  // ─────────────────────────────────────────────
+  const todayTrend = computed(() => {
+    const yesterdayStart = getStartOfDay(Date.now() - 86400000)
+    const yesterdayEnd = getStartOfDay(Date.now())
+    const yesterdaySessions = sessions.value.filter(s => s.endedAt >= yesterdayStart && s.endedAt < yesterdayEnd)
+    const yesterdayCost = yesterdaySessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = todayStats.value.cost - yesterdayCost
+    const percentChange = yesterdayCost === 0 ? (change > 0 ? 100 : 0) : (change / yesterdayCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const weekTrend = computed(() => {
+    const prevWeekStart = getStartOfWeek(Date.now() - 7 * 86400000)
+    const prevWeekEnd = getStartOfWeek(Date.now())
+    const prevWeekSessions = sessions.value.filter(s => s.endedAt >= prevWeekStart && s.endedAt < prevWeekEnd)
+    const prevWeekCost = prevWeekSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = weekStats.value.cost - prevWeekCost
+    const percentChange = prevWeekCost === 0 ? (change > 0 ? 100 : 0) : (change / prevWeekCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const monthTrend = computed(() => {
+    const prevMonthStart = getStartOfMonth(new Date(Date.now() - 30 * 86400000).getTime())
+    const prevMonthEnd = getStartOfMonth(Date.now())
+    const prevMonthSessions = sessions.value.filter(s => s.endedAt >= prevMonthStart && s.endedAt < prevMonthEnd)
+    const prevMonthCost = prevMonthSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = monthStats.value.cost - prevMonthCost
+    const percentChange = prevMonthCost === 0 ? (change > 0 ? 100 : 0) : (change / prevMonthCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const yearTrend = computed(() => {
+    const prevYearStart = getStartOfYear(Date.now() - 365 * 86400000)
+    const prevYearEnd = getStartOfYear(Date.now())
+    const prevYearSessions = sessions.value.filter(s => s.endedAt >= prevYearStart && s.endedAt < prevYearEnd)
+    const prevYearCost = prevYearSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = yearStats.value.cost - prevYearCost
+    const percentChange = prevYearCost === 0 ? (change > 0 ? 100 : 0) : (change / prevYearCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  // ─────────────────────────────────────────────
   // TOTALS
   // ─────────────────────────────────────────────
   const totals = computed(() => {
@@ -545,6 +588,10 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     weekStats,
     monthStats,
     yearStats,
+    todayTrend,
+    weekTrend,
+    monthTrend,
+    yearTrend,
 
     // totals
     totals,
