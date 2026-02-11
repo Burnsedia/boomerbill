@@ -217,6 +217,37 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   })
 
   // ─────────────────────────────────────────────
+  // ADDITIONAL STATS
+  // ─────────────────────────────────────────────
+  const avgSessionTime = computed(() => {
+    return incidentCount.value > 0 ? totals.value.minutes / incidentCount.value : 0
+  })
+
+  const costPerMinute = computed(() => rate.value / 60)
+
+  const peakDayThisMonth = computed(() => {
+    const startOfMonth = getStartOfMonth(Date.now())
+    const monthSessions = sessions.value.filter(s => s.endedAt >= startOfMonth)
+    const dayMap = new Map<string, { cost: number; count: number }>()
+    
+    monthSessions.forEach(s => {
+      const day = new Date(s.startedAt).toDateString()
+      const existing = dayMap.get(day) || { cost: 0, count: 0 }
+      existing.cost += s.cost
+      existing.count += 1
+      dayMap.set(day, existing)
+    })
+    
+    let max = { day: '', cost: 0, count: 0 }
+    for (const [day, data] of dayMap) {
+      if (data.cost > max.cost) {
+        max = { day, cost: data.cost, count: data.count }
+      }
+    }
+    return max
+  })
+
+  // ─────────────────────────────────────────────
   // TOTALS
   // ─────────────────────────────────────────────
   const totals = computed(() => {
@@ -592,6 +623,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     weekTrend,
     monthTrend,
     yearTrend,
+    avgSessionTime,
+    costPerMinute,
+    peakDayThisMonth,
 
     // totals
     totals,

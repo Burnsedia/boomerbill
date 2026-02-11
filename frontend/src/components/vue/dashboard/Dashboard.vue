@@ -9,7 +9,7 @@ const store = useBoomerBill()
 <template>
   <div class="space-y-6 max-w-4xl mx-auto">
     <!-- Time Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <TimeStatCard
         title="Today's Damage"
         :minutes="store.todayStats.minutes"
@@ -40,6 +40,20 @@ const store = useBoomerBill()
         :cost="store.yearStats.cost"
         :count="store.yearStats.count"
         :comparison="store.yearTrend"
+      />
+      
+      <TimeStatCard
+        title="All-Time Totals"
+        :minutes="store.totals.minutes"
+        :cost="store.totals.cost"
+        :count="store.incidentCount"
+      />
+      
+      <TimeStatCard
+        title="Avg Session Time"
+        :minutes="store.avgSessionTime"
+        :cost="store.costPerMinute * store.avgSessionTime"
+        :count="0"
       />
     </div>
     
