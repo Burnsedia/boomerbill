@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useBoomerBill } from '../store/boomerbills'
 import ChartTypeToggle from './ChartTypeToggle.vue'
 import BoomerChart from './BoomerChart.vue'
@@ -9,6 +9,19 @@ import TrendChart from './TrendChart.vue'
 const store = useBoomerBill()
 const chartType = ref<'bar' | 'pie' | 'doughnut'>('bar')
 const activeChart = ref<'boomers' | 'categories' | 'trends'>('boomers')
+
+// Filter refs
+const startDate = ref('')
+const endDate = ref('')
+
+// Watch date changes to update store
+watch(startDate, (val) => {
+  store.dateRange.start = val ? new Date(val + 'T00:00:00').getTime() : null
+})
+
+watch(endDate, (val) => {
+  store.dateRange.end = val ? new Date(val + 'T23:59:59').getTime() : null
+})
 </script>
 
 <template>
@@ -17,6 +30,38 @@ const activeChart = ref<'boomers' | 'categories' | 'trends'>('boomers')
       <div class="card-body">
         <h2 class="card-title text-2xl">📊 Analytics</h2>
         <p class="text-sm opacity-60">Visualize your tech support pain</p>
+        
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4 mt-4">
+          <div>
+            <label class="label">
+              <span class="label-text">Start Date</span>
+            </label>
+            <input type="date" v-model="startDate" class="input input-bordered input-sm" />
+          </div>
+          <div>
+            <label class="label">
+              <span class="label-text">End Date</span>
+            </label>
+            <input type="date" v-model="endDate" class="input input-bordered input-sm" />
+          </div>
+          <div>
+            <label class="label">
+              <span class="label-text">Boomers</span>
+            </label>
+            <select multiple v-model="store.filteredBoomers" class="select select-bordered select-sm">
+              <option v-for="boomer in store.boomers" :value="boomer.id" :key="boomer.id">{{ boomer.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">
+              <span class="label-text">Categories</span>
+            </label>
+            <select multiple v-model="store.filteredCategories" class="select select-bordered select-sm">
+              <option v-for="category in store.categories" :value="category.id" :key="category.id">{{ category.name }}</option>
+            </select>
+          </div>
+        </div>
         
         <!-- Chart Type Selector -->
         <div class="flex flex-wrap items-center gap-4 mt-4">

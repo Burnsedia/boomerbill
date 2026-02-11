@@ -49,6 +49,11 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const nextId = ref<number>(1)
   const nextBoomerId = ref<number>(1)
 
+  // Filters for analytics
+  const dateRange = ref<{ start: number | null, end: number | null }>({ start: null, end: null })
+  const filteredBoomers = ref<string[]>([])
+  const filteredCategories = ref<string[]>([])
+
   // ─────────────────────────────────────────────
   // DERIVED STATE
   // ─────────────────────────────────────────────
@@ -106,8 +111,16 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   }
 
   // ─────────────────────────────────────────────
-  // TIME STATS BY PERIOD
+  // FILTERED SESSIONS
   // ─────────────────────────────────────────────
+  const filteredSessions = computed(() => {
+    return sessions.value.filter(s => {
+      const inDateRange = !dateRange.value.start || (s.startedAt >= dateRange.value.start && s.endedAt <= (dateRange.value.end || Date.now()))
+      const inBoomers = filteredBoomers.value.length === 0 || filteredBoomers.value.includes(s.boomerId)
+      const inCategories = filteredCategories.value.length === 0 || filteredCategories.value.includes(s.categoryId)
+      return inDateRange && inBoomers && inCategories
+    })
+  })
   const todayStats = computed(() => {
     const startOfDay = getStartOfDay(Date.now())
     const todaySessions = sessions.value.filter(s => s.endedAt >= startOfDay)
@@ -271,6 +284,48 @@ export const useBoomerBill = defineStore('boomerbills', () => {
           'rgba(153, 102, 255, 0.6)'
         ]
       }]
+    }
+  })
+
+  // ─────────────────────────────────────────────
+  // TIME SERIES DATA FOR TRENDS
+  // ─────────────────────────────────────────────
+  const timeSeriesData = computed(() => {
+    const grouped = new Map<string, { date: string; sessions: number; cost: number; minutes: number }>()
+    
+    sessions.value.forEach(session => {
+      const date = new Date(session.startedAt).toISOString().split('T')[0] // Daily granularity
+      const existing = grouped.get(date) || { date, sessions: 0, cost: 0, minutes: 0 }
+      existing.sessions++
+      existing.cost += session.cost
+      existing.minutes += session.minutes
+      grouped.set(date, existing)
+    })
+    
+    return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date))
+  })
+
+  const trendChartData = computed(() => {
+    const data = timeSeriesData.value
+    
+    return {
+      labels: data.map(d => new Date(d.date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Total Cost ($)',
+          data: data.map(d => d.cost),
+          borderColor: '#ff6384',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          tension: 0.1
+        },
+        {
+          label: 'Time (minutes)',
+          data: data.map(d => d.minutes),
+          borderColor: '#36a2eb',
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          tension: 0.1
+        }
+      ]
     }
   })
 
@@ -475,6 +530,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     selectedCategoryId,
     nextId,
     nextBoomerId,
+    dateRange,
+    filteredBoomers,
+    filteredCategories,
 
     // derived state
     isRunning,
@@ -490,7 +548,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
     // totals
     totals,
-    incidentCount,
+    filteredSessions,
 
     // leaderboards
     sortedSessions,
@@ -500,6 +558,8 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     // chart data
     boomerChartData,
     categoryChartData,
+    timeSeriesData,
+    trendChartData,
 
     // export
     exportCSV,
