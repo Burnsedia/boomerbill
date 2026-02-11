@@ -18,6 +18,11 @@
     "vue": "^3.5.28"
   },
   "devDependencies": {
-    "daisyui": "^5.5.18"
+    "@pinia/testing": "^1.0.3",
+    "@playwright/test": "^1.58.2",
+    "@vue/test-utils": "^2.4.6",
+    "daisyui": "^5.5.18",
+    "jsdom": "^28.0.0",
+    "vitest": "^4.0.18"
   }
 }
