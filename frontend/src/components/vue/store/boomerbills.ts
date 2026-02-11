@@ -501,6 +501,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     boomerChartData,
     categoryChartData,
 
+    // export
+    exportCSV,
+
     // helpers
     severity,
     currentDurationMs,
