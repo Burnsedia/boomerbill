@@ -1,0 +1,45 @@
+<script setup lang="ts">
+import { useBoomerBill } from '../store/boomerbills'
+import TimeStatCard from './TimeStatCard.vue'
+import LeaderboardTabs from './LeaderboardTabs.vue'
+
+const store = useBoomerBill()
+</script>
+
+<template>
+  <div class="space-y-6 max-w-4xl mx-auto">
+    <!-- Time Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <TimeStatCard
+        title="Today's Damage"
+        :minutes="store.todayStats.minutes"
+        :cost="store.todayStats.cost"
+        :count="store.todayStats.count"
+      />
+      
+      <TimeStatCard
+        title="This Week's Damage"
+        :minutes="store.weekStats.minutes"
+        :cost="store.weekStats.cost"
+        :count="store.weekStats.count"
+      />
+      
+      <TimeStatCard
+        title="This Month's Damage"
+        :minutes="store.monthStats.minutes"
+        :cost="store.monthStats.cost"
+        :count="store.monthStats.count"
+      />
+      
+      <TimeStatCard
+        title="This Year's Damage"
+        :minutes="store.yearStats.minutes"
+        :cost="store.yearStats.cost"
+        :count="store.yearStats.count"
+      />
+    </div>
+    
+    <!-- Leaderboards -->
+    <LeaderboardTabs />
+  </div>
+</template>
