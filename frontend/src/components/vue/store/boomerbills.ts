@@ -19,6 +19,11 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const nextId = ref<number>(1)
 
   // ─────────────────────────────────────────────
+  // DERIVED STATE (NEW)
+  // ─────────────────────────────────────────────
+  const isRunning = computed(() => startTime.value !== null)
+
+  // ─────────────────────────────────────────────
   // PERSISTENCE (Astro-safe)
   // ─────────────────────────────────────────────
   function load() {
@@ -51,26 +56,32 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     return 'Unforgivable'
   }
 
+  // PURE helper for ticking clock (NEW)
+  function currentDurationMs(now = Date.now()) {
+    if (!startTime.value) return 0
+    return Math.max(0, now - startTime.value)
+  }
+
   // ─────────────────────────────────────────────
   // ACTIONS
   // ─────────────────────────────────────────────
-  function start() {
-    startTime.value = Date.now()
+  function start(now = Date.now()) {
+    startTime.value = now
   }
 
-  function stop(note?: string) {
+  function stop(note?: string, now = Date.now()) {
     if (!startTime.value) return
 
     const minutes = Math.max(
       1,
-      Math.round((Date.now() - startTime.value) / 60000)
+      Math.round((now - startTime.value) / 60000)
     )
 
-    addSession(minutes, note)
+    addSession(minutes, note, now)
     startTime.value = null
   }
 
-  function addSession(minutes: number, note?: string) {
+  function addSession(minutes: number, note?: string, endedAt = Date.now()) {
     const cost = (minutes / 60) * rate.value
 
     sessions.value.push({
@@ -78,7 +89,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
       minutes,
       cost,
       note,
-      ended_at: Date.now()
+      ended_at: endedAt
     })
 
     persist()
@@ -132,7 +143,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const avgPerYear = computed(() => avgPerDay.value * 365)
 
   // ─────────────────────────────────────────────
-  // WEEKLY SUMMARY (TEXT)
+  // WEEKLY SUMMARY
   // ─────────────────────────────────────────────
   const weeklySummary = computed(() => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
@@ -163,6 +174,10 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     rate,
     sessions,
     startTime,
+    isRunning,
+
+    // timing helpers
+    currentDurationMs,
 
     // totals
     totals,
