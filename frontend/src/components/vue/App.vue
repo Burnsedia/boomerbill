@@ -17,7 +17,6 @@ app?.use(pinia)
 
 const store = useBoomerBill()
 const currentView = ref<'session' | 'dashboard' | 'charts' | 'settings'>('session')
-const drawerOpen = ref(false)
 
 onMounted(() => {
   store.load()
@@ -25,57 +24,35 @@ onMounted(() => {
 
 function navigate(view: 'session' | 'dashboard' | 'charts' | 'settings') {
   currentView.value = view
-  drawerOpen.value = false
+  // Close drawer by unchecking the checkbox
+  const drawerToggle = document.getElementById('main-drawer') as HTMLInputElement
+  if (drawerToggle) {
+    drawerToggle.checked = false
+  }
 }
 </script>
 
 <template>
-  <div class="drawer lg:drawer-open min-h-screen bg-base-100">
-    <input 
-      id="main-drawer" 
-      type="checkbox" 
-      class="drawer-toggle" 
-      v-model="drawerOpen"
+  <!-- Navigation Sidebar - Teleported to Layout.astro sidebar div -->
+  <Teleport to="#navigation-sidebar">
+    <Navigation 
+      :current-view="currentView"
+      @navigate="navigate"
     />
+  </Teleport>
+  
+  <!-- Main Content Area -->
+  <div class="h-full">
+    <SessionTracker v-if="currentView === 'session'" />
+    <Dashboard v-else-if="currentView === 'dashboard'" />
+    <ChartsPage v-else-if="currentView === 'charts'" />
+    <SettingsPage v-else />
     
-    <div class="drawer-content flex flex-col">
-      <!-- Mobile Header -->
-      <div class="lg:hidden navbar bg-base-200 border-b border-base-300">
-        <div class="flex-none">
-          <label for="main-drawer" class="btn btn-square btn-ghost drawer-button">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </label>
-        </div>
-        <div class="flex-1 px-4">
-          <span class="text-lg font-bold">BoomerBill</span>
-        </div>
-      </div>
-      
-      <!-- Main Content -->
-      <main class="flex-1 p-4 overflow-y-auto">
-        <SessionTracker v-if="currentView === 'session'" />
-        <Dashboard v-else-if="currentView === 'dashboard'" />
-        <ChartsPage v-else-if="currentView === 'charts'" />
-        <SettingsPage v-else />
-      </main>
-      
-      <!-- Mobile Bottom Tabs -->
-      <MobileTabs 
-        v-if="currentView === 'session' || currentView === 'dashboard'"
-        :current-view="currentView"
-        @navigate="navigate"
-      />
-    </div>
-    
-    <!-- Sidebar / Drawer -->
-    <div class="drawer-side z-50 is-drawer-close:overflow-visible">
-      <label for="main-drawer" class="drawer-overlay"></label>
-      <Navigation 
-        :current-view="currentView"
-        @navigate="navigate"
-      />
-    </div>
+    <!-- Mobile Bottom Tabs -->
+    <MobileTabs 
+      v-if="currentView === 'session' || currentView === 'dashboard'"
+      :current-view="currentView"
+      @navigate="navigate"
+    />
   </div>
 </template>
