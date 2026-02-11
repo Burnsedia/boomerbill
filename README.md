@@ -48,7 +48,7 @@ It’s a visibility app.
 
 - Vue 3 (Composition API)
 - Pinia for state management
-- Vite for dev/build
+- Astro for dev/build
 - Vitest for unit testing
 - DaisyUI + Tailwind CSS for styling
 - LocalStorage (no server, no SSR)
@@ -144,4 +144,4 @@ Once you see the number, you can decide what to do next.
 
 ## License
 
-AGPL 
+AGPLv3
