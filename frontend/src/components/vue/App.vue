@@ -70,14 +70,12 @@ function navigate(view: 'session' | 'dashboard' | 'charts' | 'settings') {
     </div>
     
     <!-- Sidebar / Drawer -->
-    <div class="drawer-side z-50">
+    <div class="drawer-side z-50 is-drawer-close:overflow-visible">
       <label for="main-drawer" class="drawer-overlay"></label>
-      <div class="w-80 min-h-full bg-base-200">
-        <Navigation 
-          :current-view="currentView"
-          @navigate="navigate"
-        />
-      </div>
+      <Navigation 
+        :current-view="currentView"
+        @navigate="navigate"
+      />
     </div>
   </div>
 </template>
