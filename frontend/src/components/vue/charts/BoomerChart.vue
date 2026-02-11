@@ -14,6 +14,8 @@ const props = defineProps<{
 
 const chartData = computed(() => store.boomerChartData)
 
+const totalCost = computed(() => chartData.value.datasets[0].data.reduce((sum, val) => sum + val, 0))
+
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -25,6 +27,15 @@ const chartOptions = {
     title: {
       display: true,
       text: 'Most Expensive Boomers'
+    },
+    tooltip: {
+      callbacks: {
+        label: (context) => {
+          const value = context.parsed.y
+          const percent = totalCost.value > 0 ? ((value / totalCost.value) * 100).toFixed(1) : '0'
+          return `${context.label}: $${value.toFixed(0)} (${percent}%)`
+        }
+      }
     }
   }
 }

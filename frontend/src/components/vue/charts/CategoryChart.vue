@@ -14,6 +14,8 @@ const props = defineProps<{
 
 const chartData = computed(() => store.categoryChartData)
 
+const totalMinutes = computed(() => chartData.value.datasets[0].data.reduce((sum, val) => sum + val, 0))
+
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -24,8 +26,14 @@ const chartOptions = {
     },
     title: {
       display: true,
-      text: 'Time Wasted by Category'
+      text: 'Time by Category'
     }
+  }
+}
+      }
+    }
+  }
+}
   }
 }
 

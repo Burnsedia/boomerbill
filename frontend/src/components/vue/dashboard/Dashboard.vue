@@ -2,6 +2,7 @@
 import { useBoomerBill } from '../store/boomerbills'
 import TimeStatCard from './TimeStatCard.vue'
 import LeaderboardTabs from './LeaderboardTabs.vue'
+import InsightsCard from './InsightsCard.vue'
 
 const store = useBoomerBill()
 </script>
@@ -59,5 +60,8 @@ const store = useBoomerBill()
     
     <!-- Leaderboards -->
     <LeaderboardTabs />
+    
+    <!-- Insights -->
+    <InsightsCard />
   </div>
 </template>
