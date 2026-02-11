@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useBoomerBill } from '../boomerbills'
 import { createPinia, setActivePinia } from 'pinia'
 
@@ -23,12 +23,22 @@ Object.defineProperty(window, 'navigator', {
 })
 
 describe('useBoomerBill Store', () => {
+  // Fixed "current" date for tests: January 15, 2024
+  const MOCK_NOW = new Date('2024-01-15T12:00:00').getTime()
+  
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorageMock.getItem.mockReset()
     localStorageMock.setItem.mockReset()
     localStorageMock.removeItem.mockReset()
     localStorageMock.clear.mockReset()
+    
+    // Mock Date.now() to return our fixed time
+    vi.spyOn(Date, 'now').mockReturnValue(MOCK_NOW)
+  })
+  
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('Initial State', () => {
@@ -164,7 +174,7 @@ describe('useBoomerBill Store', () => {
     // BUG EXPOSURE TEST 3: Averages exceeding 24 hours
     it('BUG: avgPerDay can exceed 24 hours with short duration', () => {
       const store = useBoomerBill()
-      const baseTime = new Date('2024-01-01').getTime()
+      const baseTime = new Date('2024-01-15').getTime()
       
       // Add 10 sessions of 3 hours each = 30 hours total
       // All on the same day (within 24 hours)
@@ -175,7 +185,7 @@ describe('useBoomerBill Store', () => {
       // Total minutes: 10 * 180 = 1800 minutes = 30 hours
       expect(store.totals.minutes).toBe(1800)
       
-      // daysActive: 1 (all sessions within 24 hours)
+      // daysActive: 1 (all sessions on Jan 15, current time is Jan 15)
       expect(store.daysActive).toBe(1)
       
       // BUG: avgPerDay = 1800 / 1 = 1800 minutes = 30 hours!
@@ -200,9 +210,9 @@ describe('useBoomerBill Store', () => {
       // Session on Jan 10 (9 days gap)
       store.addSession(5, 'Jan 10 session', jan10)
       
-      // BUG: daysActive counts ALL calendar days between first and last
-      // including days with no activity
-      expect(store.daysActive).toBe(10) // Jan 1 through Jan 10
+      // BUG: daysActive counts ALL calendar days from first session to NOW
+      // including days with no activity (Jan 1 to Jan 15 = 15 days)
+      expect(store.daysActive).toBe(15)
       
       // But actual "active days" (days with sessions) is only 2
       // This artificially deflates the averages
