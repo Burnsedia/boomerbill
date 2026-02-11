@@ -4,10 +4,11 @@ import { useBoomerBill } from '../store/boomerbills'
 import ChartTypeToggle from './ChartTypeToggle.vue'
 import BoomerChart from './BoomerChart.vue'
 import CategoryChart from './CategoryChart.vue'
+import TrendChart from './TrendChart.vue'
 
 const store = useBoomerBill()
 const chartType = ref<'bar' | 'pie' | 'doughnut'>('bar')
-const activeChart = ref<'boomers' | 'categories'>('boomers')
+const activeChart = ref<'boomers' | 'categories' | 'trends'>('boomers')
 </script>
 
 <template>
@@ -39,6 +40,13 @@ const activeChart = ref<'boomers' | 'categories'>('boomers')
           >
             ⏱️ By Category
           </button>
+          <button
+            class="tab"
+            :class="{ 'tab-active': activeChart === 'trends' }"
+            @click="activeChart = 'trends'"
+          >
+            📈 Trends Over Time
+          </button>
         </div>
         
         <!-- Chart Display -->
@@ -49,7 +57,8 @@ const activeChart = ref<'boomers' | 'categories'>('boomers')
           </div>
           
           <BoomerChart v-else-if="activeChart === 'boomers'" :type="chartType" />
-          <CategoryChart v-else :type="chartType" />
+          <CategoryChart v-else-if="activeChart === 'categories'" :type="chartType" />
+          <TrendChart v-else />
         </div>
       </div>
     </div>
