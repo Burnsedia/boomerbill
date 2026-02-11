@@ -4,7 +4,6 @@ import { onMounted, getCurrentInstance, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 import Navigation from './layout/Navigation.vue'
-import MobileTabs from './layout/MobileTabs.vue'
 import SessionTracker from './session/SessionTracker.vue'
 import Dashboard from './dashboard/Dashboard.vue'
 import ChartsPage from './charts/ChartsPage.vue'
@@ -47,12 +46,5 @@ function navigate(view: 'session' | 'dashboard' | 'charts' | 'settings') {
     <Dashboard v-else-if="currentView === 'dashboard'" />
     <ChartsPage v-else-if="currentView === 'charts'" />
     <SettingsPage v-else />
-    
-    <!-- Mobile Bottom Tabs -->
-    <MobileTabs 
-      v-if="currentView === 'session' || currentView === 'dashboard'"
-      :current-view="currentView"
-      @navigate="navigate"
-    />
   </div>
 </template>
