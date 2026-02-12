@@ -381,7 +381,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
   const trendChartData = computed(() => {
     const data = timeSeriesData.value
-    
+
     return {
       labels: data.map(d => new Date(d.date).toLocaleDateString()),
       datasets: [
@@ -401,6 +401,117 @@ export const useBoomerBill = defineStore('boomerbills', () => {
         }
       ]
     }
+  })
+
+  const weeklyTimeSeries = computed(() => {
+    const grouped = new Map<string, { week: string; sessions: number; cost: number; minutes: number }>()
+
+    sessions.value.forEach(session => {
+      const weekStart = getStartOfWeek(session.startedAt)
+      const week = new Date(weekStart).toISOString().split('T')[0]
+      const existing = grouped.get(week) || { week, sessions: 0, cost: 0, minutes: 0 }
+      existing.sessions++
+      existing.cost += session.cost
+      existing.minutes += session.minutes
+      grouped.set(week, existing)
+    })
+
+    return Array.from(grouped.values()).sort((a, b) => a.week.localeCompare(b.week))
+  })
+
+  const monthlyTimeSeries = computed(() => {
+    const grouped = new Map<string, { month: string; sessions: number; cost: number; minutes: number }>()
+
+    sessions.value.forEach(session => {
+      const monthStart = getStartOfMonth(session.startedAt)
+      const month = new Date(monthStart).toISOString().slice(0, 7) // YYYY-MM
+      const existing = grouped.get(month) || { month, sessions: 0, cost: 0, minutes: 0 }
+      existing.sessions++
+      existing.cost += session.cost
+      existing.minutes += session.minutes
+      grouped.set(month, existing)
+    })
+
+    return Array.from(grouped.values()).sort((a, b) => a.month.localeCompare(b.month))
+  })
+
+  const hourlyPatterns = computed(() => {
+    const hourStats = new Map<number, { hour: number; sessions: number; totalCost: number; totalMinutes: number; avgCost: number; avgMinutes: number }>()
+
+    sessions.value.forEach(session => {
+      const hour = new Date(session.startedAt).getHours()
+      const existing = hourStats.get(hour) || { hour, sessions: 0, totalCost: 0, totalMinutes: 0, avgCost: 0, avgMinutes: 0 }
+      existing.sessions++
+      existing.totalCost += session.cost
+      existing.totalMinutes += session.minutes
+      hourStats.set(hour, existing)
+    })
+
+    return Array.from(hourStats.values()).map(stat => ({
+      ...stat,
+      avgCost: stat.sessions > 0 ? stat.totalCost / stat.sessions : 0,
+      avgMinutes: stat.sessions > 0 ? stat.totalMinutes / stat.sessions : 0
+    })).sort((a, b) => a.hour - b.hour)
+  })
+
+  const dayOfWeekPatterns = computed(() => {
+    const dayStats = new Map<number, { day: number; dayName: string; sessions: number; totalCost: number; totalMinutes: number; avgCost: number; avgMinutes: number }>()
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    sessions.value.forEach(session => {
+      const day = new Date(session.startedAt).getDay()
+      const existing = dayStats.get(day) || { day, dayName: dayNames[day], sessions: 0, totalCost: 0, totalMinutes: 0, avgCost: 0, avgMinutes: 0 }
+      existing.sessions++
+      existing.totalCost += session.cost
+      existing.totalMinutes += session.minutes
+      dayStats.set(day, existing)
+    })
+
+    return Array.from(dayStats.values()).map(stat => ({
+      ...stat,
+      avgCost: stat.sessions > 0 ? stat.totalCost / stat.sessions : 0,
+      avgMinutes: stat.sessions > 0 ? stat.totalMinutes / stat.sessions : 0
+    })).sort((a, b) => a.day - b.day)
+  })
+
+  const costEfficiencyChartData = computed(() => {
+    const data = timeSeriesData.value.filter(d => d.sessions > 0 && d.minutes > 0)
+
+    return {
+      labels: data.map(d => new Date(d.date).toLocaleDateString()),
+      datasets: [{
+        label: 'Cost per Minute ($)',
+        data: data.map(d => d.cost / d.minutes),
+        borderColor: '#4bc0c0',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1
+      }]
+    }
+  })
+
+  const sessionDurationDistribution = computed(() => {
+    const buckets = [
+      { label: '0-5 min', min: 0, max: 5, count: 0, totalCost: 0, totalMinutes: 0 },
+      { label: '5-15 min', min: 5, max: 15, count: 0, totalCost: 0, totalMinutes: 0 },
+      { label: '15-30 min', min: 15, max: 30, count: 0, totalCost: 0, totalMinutes: 0 },
+      { label: '30-60 min', min: 30, max: 60, count: 0, totalCost: 0, totalMinutes: 0 },
+      { label: '60+ min', min: 60, max: Infinity, count: 0, totalCost: 0, totalMinutes: 0 }
+    ]
+
+    sessions.value.forEach(session => {
+      const bucket = buckets.find(b => session.minutes >= b.min && session.minutes < b.max)
+      if (bucket) {
+        bucket.count++
+        bucket.totalCost += session.cost
+        bucket.totalMinutes += session.minutes
+      }
+    })
+
+    return buckets.map(b => ({
+      ...b,
+      percentage: sessions.value.length > 0 ? (b.count / sessions.value.length) * 100 : 0
+    }))
   })
 
   // ─────────────────────────────────────────────
@@ -641,6 +752,12 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     categoryChartData,
     timeSeriesData,
     trendChartData,
+    weeklyTimeSeries,
+    monthlyTimeSeries,
+    hourlyPatterns,
+    dayOfWeekPatterns,
+    costEfficiencyChartData,
+    sessionDurationDistribution,
 
     // export
     exportCSV,

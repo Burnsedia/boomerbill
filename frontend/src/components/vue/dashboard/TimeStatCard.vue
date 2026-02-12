@@ -10,6 +10,17 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   comparison: undefined
 })
+
+const formatMinutes = (mins: number) => {
+  const hours = Math.floor(mins / 60)
+  const minutes = mins % 60
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+  return `${minutes}m`
+}
+
+const formatCost = (cost: number) => cost.toFixed(0)
 </script>
 
 <template>
@@ -26,6 +37,14 @@ const props = withDefaults(defineProps<Props>(), {
         <div>
           <div class="text-2xl font-mono font-bold text-error">${{ formatCost(cost) }}</div>
           <div class="text-xs opacity-60">Damages</div>
+          <div v-if="comparison" class="text-xs mt-1 flex items-center">
+            <span v-if="comparison.direction === 'up'" class="text-red-500">▲</span>
+            <span v-else-if="comparison.direction === 'down'" class="text-green-500">▼</span>
+            <span v-else class="text-gray-500">—</span>
+            <span class="ml-1">
+              {{ comparison.percentChange > 0 ? '+' : '' }}{{ comparison.percentChange.toFixed(1) }}%
+            </span>
+          </div>
         </div>
       </div>
       

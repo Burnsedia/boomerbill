@@ -27,13 +27,16 @@ const chartOptions = {
     title: {
       display: true,
       text: 'Time by Category'
-    }
-  }
-}
+    },
+    tooltip: {
+      callbacks: {
+        label: (context) => {
+          const value = context.parsed.y
+          const percent = totalMinutes.value > 0 ? ((value / totalMinutes.value) * 100).toFixed(1) : '0'
+          return `${context.label}: ${value} mins (${percent}%)`
+        }
       }
     }
-  }
-}
   }
 }
 

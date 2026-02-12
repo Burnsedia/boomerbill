@@ -5,10 +5,13 @@ import ChartTypeToggle from './ChartTypeToggle.vue'
 import BoomerChart from './BoomerChart.vue'
 import CategoryChart from './CategoryChart.vue'
 import TrendChart from './TrendChart.vue'
+import TimeSeriesChart from './TimeSeriesChart.vue'
+import PatternCharts from './PatternCharts.vue'
+import EfficiencyChart from './EfficiencyChart.vue'
+import DurationDistributionChart from './DurationDistributionChart.vue'
+import ComparisonCharts from './ComparisonCharts.vue'
 
 const store = useBoomerBill()
-const chartType = ref<'bar' | 'pie' | 'doughnut'>('bar')
-const activeChart = ref<'boomers' | 'categories' | 'trends'>('boomers')
 
 // Filter refs
 const startDate = ref('')
@@ -25,11 +28,11 @@ watch(endDate, (val) => {
 </script>
 
 <template>
-  <div class="space-y-6 max-w-4xl mx-auto">
+  <div class="space-y-6 max-w-6xl mx-auto">
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body">
-        <h2 class="card-title text-2xl">📊 Analytics</h2>
-        <p class="text-sm opacity-60">Visualize your tech support pain</p>
+        <h2 class="card-title text-2xl">📊 Comprehensive Analytics</h2>
+        <p class="text-sm opacity-60">Multi-dimensional insights into your unpaid tech support</p>
         
         <!-- Filters -->
         <div class="flex flex-wrap gap-4 mt-4">
@@ -63,48 +66,115 @@ watch(endDate, (val) => {
           </div>
         </div>
         
-        <!-- Chart Type Selector -->
-        <div class="flex flex-wrap items-center gap-4 mt-4">
-          <span class="text-sm font-semibold">Chart Type:</span>
-          <ChartTypeToggle v-model="chartType" />
+        <!-- Summary Stats (Retro Terminal Style) -->
+        <div class="card bg-base-200 shadow-lg border border-primary">
+          <div class="card-body gap-4">
+            <h2 class="card-title font-mono">Analytics Terminal</h2>
+
+            <div class="stats stats-vertical md:stats-horizontal shadow font-mono">
+
+              <!-- Total Sessions -->
+              <div class="stat">
+                <div class="stat-title">Total Sessions</div>
+                <div class="stat-value text-accent">
+                  {{ store.filteredSessions.length }}
+                </div>
+              </div>
+
+              <!-- Total Cost -->
+              <div class="stat">
+                <div class="stat-title">Total Cost</div>
+                <div class="stat-value text-error">
+                  $ {{ store.totals.cost.toFixed(0) }}
+                </div>
+              </div>
+
+              <!-- Total Time -->
+              <div class="stat">
+                <div class="stat-title">Total Time</div>
+                <div class="stat-value text-info">
+                  {{ store.totals.minutes }}m
+                </div>
+              </div>
+
+              <!-- Avg Session -->
+              <div class="stat">
+                <div class="stat-title">Avg Session</div>
+                <div class="stat-value text-secondary">
+                  {{ store.avgSessionTime.toFixed(0) }}m
+                </div>
+              </div>
+
+            </div>
+
+            <p class="text-xs opacity-60 font-mono">
+              Based on filtered data. Total recorded: {{ store.sessions.length }} sessions.
+            </p>
+          </div>
         </div>
         
-        <!-- Chart Tabs -->
-        <div class="tabs tabs-boxed mt-6">
-          <button
-            class="tab"
-            :class="{ 'tab-active': activeChart === 'boomers' }"
-            @click="activeChart = 'boomers'"
-          >
-            💸 By Boomer
-          </button>
-          <button
-            class="tab"
-            :class="{ 'tab-active': activeChart === 'categories' }"
-            @click="activeChart = 'categories'"
-          >
-            ⏱️ By Category
-          </button>
-          <button
-            class="tab"
-            :class="{ 'tab-active': activeChart === 'trends' }"
-            @click="activeChart = 'trends'"
-          >
-            📈 Trends Over Time
-          </button>
+        <!-- Charts Grid -->
+        <div v-if="store.sessions.length === 0" class="text-center py-12 text-opacity-60 mt-6">
+          No data to display yet.<br>
+          Start tracking sessions to see comprehensive analytics!
         </div>
-        
-        <!-- Chart Display -->
-        <div class="mt-6 p-4 bg-base-100 rounded-lg">
-          <div v-if="store.sessions.length === 0" class="text-center py-12 text-opacity-60">
-            No data to display yet.<br>
-            Start tracking sessions to see charts!
+        <div v-else class="mt-6 space-y-6">
+          <!-- Time Series Analysis -->
+          <div class="card bg-base-200 shadow-lg border border-primary">
+            <div class="card-body">
+              <h3 class="card-title font-mono">📈 Time Series Analysis</h3>
+              <TimeSeriesChart />
+            </div>
           </div>
           
-          <BoomerChart v-else-if="activeChart === 'boomers'" :type="chartType" />
-          <CategoryChart v-else-if="activeChart === 'categories'" :type="chartType" />
-          <TrendChart v-else />
-        </div>
+          <!-- Pattern Analysis -->
+          <div class="card bg-base-200 shadow-lg border border-primary">
+            <div class="card-body">
+              <h3 class="card-title font-mono">🔄 Usage Patterns</h3>
+              <PatternCharts />
+            </div>
+          </div>
+          
+          <!-- Efficiency Analysis -->
+          <div class="card bg-base-200 shadow-lg border border-primary">
+            <div class="card-body">
+              <h3 class="card-title font-mono">💰 Cost Efficiency</h3>
+              <EfficiencyChart />
+            </div>
+          </div>
+          
+          <!-- Session Distribution -->
+          <div class="card bg-base-200 shadow-lg border border-primary">
+            <div class="card-body">
+              <h3 class="card-title font-mono">⏱️ Session Duration Distribution</h3>
+              <DurationDistributionChart />
+            </div>
+          </div>
+          
+          <!-- Comparisons -->
+          <div class="card bg-base-200 shadow-lg border border-primary">
+            <div class="card-body">
+              <h3 class="card-title font-mono">🏆 Performance Comparisons</h3>
+              <ComparisonCharts />
+            </div>
+          </div>
+          
+          <!-- Legacy Charts -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card bg-base-200 shadow-lg border border-primary">
+              <div class="card-body">
+                <h3 class="card-title font-mono">💸 By Boomer</h3>
+                <BoomerChart type="bar" />
+              </div>
+            </div>
+            <div class="card bg-base-200 shadow-lg border border-primary">
+              <div class="card-body">
+                <h3 class="card-title">⏱️ By Category</h3>
+                <CategoryChart type="bar" />
+              </div>
+            </div>
+           </div>
+         </div>
       </div>
     </div>
   </div>
