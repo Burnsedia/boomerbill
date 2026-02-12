@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// Ensure Chart.js is registered before vue-chartjs imports
-import '../charts/chartInit'
-
 import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
 import { useBoomerBill } from '../store/boomerbills'
