@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Bar } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
 import { useBoomerBill } from '../store/boomerbills'
-
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const store = useBoomerBill()
 
