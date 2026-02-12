@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { createPinia } from 'pinia'
 import { onMounted, getCurrentInstance, ref } from 'vue'
+import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale } from 'chart.js'
 import { useBoomerBill } from './store/boomerbills'
 
 import Navigation from './layout/Navigation.vue'
@@ -18,6 +19,7 @@ const store = useBoomerBill()
 const currentView = ref<'session' | 'dashboard' | 'charts' | 'settings'>('session')
 
 onMounted(() => {
+  ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale)
   store.load()
 })
 
