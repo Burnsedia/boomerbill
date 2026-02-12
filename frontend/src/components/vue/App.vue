@@ -1,7 +1,9 @@
 <script setup lang="ts">
+// Initialize Chart.js FIRST - before any vue-chartjs imports
+import './charts/chartInit'
+
 import { createPinia } from 'pinia'
 import { onMounted, getCurrentInstance, ref } from 'vue'
-import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale } from 'chart.js'
 import { useBoomerBill } from './store/boomerbills'
 
 import Navigation from './layout/Navigation.vue'
@@ -9,10 +11,6 @@ import SessionTracker from './session/SessionTracker.vue'
 import Dashboard from './dashboard/Dashboard.vue'
 import ChartsPage from './charts/ChartsPage.vue'
 import SettingsPage from './settings/SettingsPage.vue'
-
-// Register Chart.js components immediately (before Vue mounts)
-// This ensures Chart.js is ready when chart components render
-ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale)
 
 // Create ONE pinia instance
 const pinia = createPinia()
