@@ -11,7 +11,10 @@ const props = defineProps<{
 
 const chartData = computed(() => store.categoryChartData)
 
-const totalMinutes = computed(() => chartData.value.datasets[0].data.reduce((sum, val) => sum + val, 0))
+const totalMinutes = computed(() => {
+  const data = chartData.value.datasets[0]?.data || []
+  return data.reduce((sum, val) => sum + val, 0)
+})
 
 const chartOptions = {
   responsive: true,
