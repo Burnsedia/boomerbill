@@ -10,6 +10,10 @@ import Dashboard from './dashboard/Dashboard.vue'
 import ChartsPage from './charts/ChartsPage.vue'
 import SettingsPage from './settings/SettingsPage.vue'
 
+// Register Chart.js components immediately (before Vue mounts)
+// This ensures Chart.js is ready when chart components render
+ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale)
+
 // Create ONE pinia instance
 const pinia = createPinia()
 const app = getCurrentInstance()?.appContext.app
@@ -19,7 +23,6 @@ const store = useBoomerBill()
 const currentView = ref<'session' | 'dashboard' | 'charts' | 'settings'>('session')
 
 onMounted(() => {
-  ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, BarElement, ArcElement, CategoryScale, LinearScale)
   store.load()
 })
 
