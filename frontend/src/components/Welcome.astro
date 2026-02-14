@@ -1,110 +1,144 @@
 ---
-import astroLogo from '../assets/astro.svg';
-import background from '../assets/background.svg';
 ---
- <div class="max-w-3xl mx-auto space-y-16">
-
-    <!-- HERO -->
-    <section class="space-y-6">
-      <h1 class="text-4xl md:text-5xl font-bold tracking-tight">
-        BoomerBill
-      </h1>
-
-      <p class="text-lg opacity-80">
-        Track unpaid family tech support and calculate
-        how much freelancing money you could have made instead.
-      </p>
+<div class="max-w-6xl mx-auto space-y-12">
+  <section class="grid gap-8 md:grid-cols-2 md:items-center">
+    <div class="space-y-6">
+      <div class="space-y-3">
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-primary">
+          BoomerBill
+        </h1>
+        <p class="text-lg opacity-80">
+          Track unpaid family tech support and calculate
+          how much freelancing money you could have made instead.
+        </p>
+      </div>
 
       <div class="flex flex-wrap gap-3">
         <a href="/app" class="btn btn-primary">
           Start Billing
         </a>
-        <a href="#how" class="btn btn-ghost">
+        <a href="#how" class="btn btn-outline">
           How it works
         </a>
       </div>
-    </section>
 
-    <!-- PAIN POINTS -->
-    <section class="grid gap-6 md:grid-cols-3">
-      <div class="card bg-base-200 shadow">
-        <div class="card-body">
-          <h3 class="font-semibold">
-            “Just one quick thing…”
-          </h3>
-          <p class="text-sm opacity-70">
-            Which somehow takes 45 minutes.
-          </p>
+      <div class="text-xs opacity-60">
+        No signup. No login. No forgiveness.
+      </div>
+    </div>
+
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body gap-4">
+        <div class="flex items-center justify-between">
+          <h2 class="card-title">Session Preview</h2>
+          <span class="badge badge-primary badge-outline">Ready</span>
+        </div>
+        <div class="grid gap-3">
+          <div class="stat bg-base-300 border border-base-100 rounded-lg p-4">
+            <div class="stat-title">Hourly Rate</div>
+            <div class="stat-value text-secondary">$75</div>
+            <div class="stat-desc">Update any time</div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="card bg-base-300 border border-base-100">
+              <div class="card-body p-4">
+                <div class="text-xs opacity-60">Boomer</div>
+                <div class="text-sm font-semibold">Dad</div>
+              </div>
+            </div>
+            <div class="card bg-base-300 border border-base-100">
+              <div class="card-body p-4">
+                <div class="text-xs opacity-60">Category</div>
+                <div class="text-sm font-semibold">WiFi Issues</div>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between bg-base-300 border border-base-100 rounded-lg p-4">
+            <div>
+              <div class="text-xs opacity-60">Timer</div>
+              <div class="font-mono text-2xl">12:42</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs opacity-60">Live Damage</div>
+              <div class="font-mono text-2xl text-error">$15.75</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-success btn-sm">Start</button>
+            <button class="btn btn-error btn-sm">Stop</button>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="card bg-base-200 shadow">
-        <div class="card-body">
-          <h3 class="font-semibold">
-            “My email stopped working”
-          </h3>
-          <p class="text-sm opacity-70">
-            (They forgot their password again.)
-          </p>
+  <section class="card bg-base-200 border border-primary shadow-lg">
+    <div class="card-body">
+      <h2 class="card-title text-lg">Pain Points</h2>
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="card bg-base-300 border border-base-100">
+          <div class="card-body p-4">
+            <h3 class="font-semibold">
+              “Just one quick thing…”
+            </h3>
+            <p class="text-sm opacity-70">
+              Which somehow takes 45 minutes.
+            </p>
+          </div>
+        </div>
+        <div class="card bg-base-300 border border-base-100">
+          <div class="card-body p-4">
+            <h3 class="font-semibold">
+              “My email stopped working”
+            </h3>
+            <p class="text-sm opacity-70">
+              (They forgot their password again.)
+            </p>
+          </div>
+        </div>
+        <div class="card bg-base-300 border border-base-100">
+          <div class="card-body p-4">
+            <h3 class="font-semibold">
+              “You’re good with computers”
+            </h3>
+            <p class="text-sm opacity-70">
+              Congratulations, you’re IT now.
+            </p>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div class="card bg-base-200 shadow">
-        <div class="card-body">
-          <h3 class="font-semibold">
-            “You’re good with computers”
-          </h3>
-          <p class="text-sm opacity-70">
-            Congratulations, you’re IT now.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS -->
-    <section id="how" class="space-y-6">
-      <h2 class="text-2xl font-semibold">
-        How it works
-      </h2>
-
+  <section id="how" class="card bg-base-200 border border-primary shadow-lg">
+    <div class="card-body space-y-6">
+      <h2 class="card-title text-lg">How it works</h2>
       <ol class="steps steps-vertical md:steps-horizontal">
-        <li class="step step-primary">
-          Start the timer
-        </li>
-        <li class="step step-primary">
-          Help your family
-        </li>
-        <li class="step step-primary">
-          Stop the timer
-        </li>
-        <li class="step step-primary">
-          See the damage
-        </li>
+        <li class="step step-primary">Start the timer</li>
+        <li class="step step-primary">Help your family</li>
+        <li class="step step-primary">Stop the timer</li>
+        <li class="step step-primary">See the damage</li>
       </ol>
-
-      <p class="text-sm opacity-70 max-w-xl">
+      <p class="text-sm opacity-70 max-w-2xl">
         BoomerBill uses the average U.S. developer hourly rate by default.
         You can change it if your time is worth more. (It probably is.)
       </p>
-    </section>
+    </div>
+  </section>
 
-    <!-- DISCLAIMER -->
-    <section class="alert alert-warning shadow">
-      <span>
-        BoomerBill does not send real invoices.
-        This app exists for emotional validation only.
-      </span>
-    </section>
+  <section class="alert alert-warning shadow-lg">
+    <span>
+      BoomerBill does not send real invoices.
+      This app exists for emotional validation only.
+    </span>
+  </section>
 
-    <!-- FINAL CTA -->
-    <section class="text-center space-y-4">
-      <a href="/app" class="btn btn-lg btn-primary">
-        Open the App
-      </a>
-
-      <p class="text-xs opacity-60">
-        No signup. No login. No forgiveness.
-      </p>
-    </section>
-
-  </div>
+  <section class="text-center space-y-4">
+    <a href="/app" class="btn btn-lg btn-primary">
+      Open the App
+    </a>
+    <p class="text-xs opacity-60">
+      No signup. No login. No forgiveness.
+    </p>
+  </section>
+</div>
