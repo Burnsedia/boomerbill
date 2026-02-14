@@ -18,11 +18,11 @@ const tabs = [
     <div class="card-body">
       <h3 class="card-title text-lg">Leaderboards</h3>
 
-      <div class="tabs tabs-boxed mt-2">
+      <div class="tabs tabs-boxed mt-2 flex flex-wrap gap-2 md:gap-0">
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          class="tab"
+          class="tab w-full md:w-auto"
           :class="{ 'tab-active': activeTab === tab.id }"
           @click="activeTab = tab.id"
         >
