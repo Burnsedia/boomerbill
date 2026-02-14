@@ -5,10 +5,12 @@ interface Props {
   cost: number
   count: number
   comparison?: { change: number; percentChange: number; direction: 'up' | 'down' | 'same' }
+  costPrecision?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  comparison: undefined
+  comparison: undefined,
+  costPrecision: 0
 })
 
 const formatMinutes = (mins: number) => {
@@ -20,7 +22,7 @@ const formatMinutes = (mins: number) => {
   return `${minutes}m`
 }
 
-const formatCost = (cost: number) => cost.toFixed(0)
+const formatCost = (cost: number) => cost.toFixed(props.costPrecision)
 </script>
 
 <template>
