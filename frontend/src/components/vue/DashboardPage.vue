@@ -99,6 +99,8 @@ const lastSessionSummary = computed(() => {
 
 <template>
   <div class="space-y-6">
+    <InsightsCard />
+
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -118,7 +120,7 @@ const lastSessionSummary = computed(() => {
           </button>
         </div>
         <div class="mt-2 text-xs opacity-60">
-          Filters apply to Averages & Efficiency and Recent Sessions.
+          Filters apply to Averages and Recent Sessions.
         </div>
 
         <div class="grid gap-4 mt-4 md:grid-cols-2">
@@ -208,12 +210,10 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <InsightsCard />
-
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <h3 class="card-title font-mono">Averages & Efficiency</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <h3 class="card-title font-mono">Averages</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TimeStatCard
             title="Avg Session Time"
             :minutes="filteredAvgSessionTime"
@@ -225,13 +225,6 @@ const lastSessionSummary = computed(() => {
             title="Avg Cost / Session"
             :minutes="filteredAvgSessionTime"
             :cost="avgCostPerSession"
-            :count="0"
-            :costPrecision="2"
-          />
-          <TimeStatCard
-            title="Cost Per Minute"
-            :minutes="1"
-            :cost="store.costPerMinute"
             :count="0"
             :costPrecision="2"
           />
