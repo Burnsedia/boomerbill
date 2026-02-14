@@ -4,6 +4,9 @@ import { useBoomerBill } from './store/boomerbills'
 
 const store = useBoomerBill()
 const note = ref('')
+const emit = defineEmits<{
+  (e: 'request-setup'): void
+}>()
 
 const presets = [
   { label: 'Just one quick thing', min: 5 },
@@ -42,6 +45,7 @@ const liveCost = computed(() =>
 
 function handleStart() {
   if (!canStart.value) {
+    emit('request-setup')
     alert('Select a boomer and category first.')
     return
   }
@@ -64,21 +68,34 @@ function addQuickSession(minutes: number, label: string) {
 
 <template>
   <!-- Controls -->
-  <div class="flex gap-2 items-center">
-    <button class="btn btn-success" :disabled="store.startTime || !canStart" @click="handleStart">
+  <div class="hidden md:flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+    <button class="btn btn-success w-full sm:w-auto" :disabled="store.startTime || !canStart" @click="handleStart">
       Start
     </button>
 
-    <button class="btn btn-error" :disabled="!store.startTime" @click="handleStop">
+    <button class="btn btn-error w-full sm:w-auto" :disabled="!store.startTime" @click="handleStop">
       Stop
     </button>
 
-    <!-- NEW: ticking timer + cost -->
     <span v-if="store.startTime" class="font-mono text-sm opacity-70 ml-2">
       {{ minutes }}:{{ String(seconds).padStart(2, '0') }}
       ·
       ${{ liveCost }}
     </span>
+  </div>
+
+  <div class="fixed bottom-6 right-6 z-50 md:hidden">
+    <button
+      class="btn shadow-lg"
+      :class="store.startTime ? 'btn-error' : 'btn-primary'"
+      :disabled="!store.startTime && !canStart"
+      @click="store.startTime ? handleStop() : handleStart()"
+    >
+      {{ store.startTime ? 'Stop & Save' : 'Start Session' }}
+    </button>
+    <p v-if="!store.startTime && !canStart" class="mt-2 text-xs text-warning text-right">
+      Choose boomer + category
+    </p>
   </div>
 
   <!-- Warning text (unchanged) -->
@@ -99,7 +116,22 @@ function addQuickSession(minutes: number, label: string) {
   </p>
 
   <!-- Quick Adds (unchanged layout) -->
-  <div class="grid grid-cols-2 gap-2 mt-3 sm:flex sm:flex-wrap">
+  <details class="md:hidden mt-3">
+    <summary class="btn btn-xs btn-outline w-full">Quick Log</summary>
+    <div class="grid grid-cols-2 gap-2 mt-2">
+      <button
+        v-for="p in presets"
+        :key="p.label"
+        class="btn btn-xs btn-outline"
+        :disabled="!canStart || store.startTime"
+        @click="addQuickSession(p.min, p.label)"
+      >
+        {{ p.label }} ({{ p.min }}m)
+      </button>
+    </div>
+  </details>
+
+  <div class="hidden md:grid grid-cols-2 gap-2 mt-3 sm:flex sm:flex-wrap">
     <button
       v-for="p in presets"
       :key="p.label"
