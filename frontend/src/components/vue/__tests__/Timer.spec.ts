@@ -72,15 +72,11 @@ describe('Timer.vue', () => {
     expect(wrapper.find('input[type="text"]').exists()).toBe(true)
   })
 
-  it('adds a quick session when preset clicked', async () => {
-    const { store, pinia } = setupSelections()
+  it('does not render quick log presets', () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
     const wrapper = mount(Timer, { global: { plugins: [pinia] } })
 
-    const presetButtons = wrapper.findAll('button.btn-outline')
-    await presetButtons[0].trigger('click')
-
-    expect(store.sessions).toHaveLength(1)
-    expect(store.sessions[0].minutes).toBe(5)
-    expect(store.sessions[0].note).toBe('Just one quick thing')
+    expect(wrapper.text()).not.toContain('Quick Log')
   })
 })
