@@ -21,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 w-full">
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <div class="flex flex-wrap gap-2">

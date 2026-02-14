@@ -53,6 +53,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const selectedCategoryId = ref<string | null>(null)
   const nextId = ref<number>(1)
   const nextBoomerId = ref<number>(1)
+  const dateRange = ref<{ start: number | null; end: number | null }>({ start: null, end: null })
+  const filteredBoomers = ref<string[]>([])
+  const filteredCategories = ref<string[]>([])
 
   const isRunning = computed(() => startTime.value !== null)
 
@@ -65,6 +68,44 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     if (!selectedCategoryId.value) return null
     return categories.value.find(c => c.id === selectedCategoryId.value) || null
   })
+
+  const currentSessionInfo = computed(() => {
+    if (!isRunning.value) return null
+    return {
+      boomer: selectedBoomer.value,
+      category: selectedCategory.value,
+      startTime: startTime.value
+    }
+  })
+
+  function getStartOfDay(timestamp: number): number {
+    const date = new Date(timestamp)
+    date.setHours(0, 0, 0, 0)
+    return date.getTime()
+  }
+
+  function getStartOfWeek(timestamp: number): number {
+    const date = new Date(timestamp)
+    const day = date.getDay()
+    const diff = date.getDate() - day
+    date.setDate(diff)
+    date.setHours(0, 0, 0, 0)
+    return date.getTime()
+  }
+
+  function getStartOfMonth(timestamp: number): number {
+    const date = new Date(timestamp)
+    date.setDate(1)
+    date.setHours(0, 0, 0, 0)
+    return date.getTime()
+  }
+
+  function getStartOfYear(timestamp: number): number {
+    const date = new Date(timestamp)
+    date.setMonth(0, 1)
+    date.setHours(0, 0, 0, 0)
+    return date.getTime()
+  }
 
   function severity(minutes: number) {
     if (minutes < 5) return 'Minor annoyance'
@@ -188,6 +229,137 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   })
 
   const incidentCount = computed(() => sessions.value.length)
+
+  const filteredSessions = computed(() => {
+    return sessions.value.filter(s => {
+      const start = dateRange.value.start
+      const end = dateRange.value.end ?? Date.now()
+      const inDateRange = !start || (s.startedAt >= start && s.endedAt <= end)
+      const inBoomers = filteredBoomers.value.length === 0 || filteredBoomers.value.includes(s.boomerId)
+      const inCategories = filteredCategories.value.length === 0 || filteredCategories.value.includes(s.categoryId)
+      return inDateRange && inBoomers && inCategories
+    })
+  })
+
+  const todayStats = computed(() => {
+    const startOfDay = getStartOfDay(Date.now())
+    const todaySessions = sessions.value.filter(s => s.endedAt >= startOfDay)
+    return todaySessions.reduce(
+      (acc, s) => {
+        acc.minutes += s.minutes
+        acc.cost += s.cost
+        return acc
+      },
+      { minutes: 0, cost: 0, count: todaySessions.length }
+    )
+  })
+
+  const weekStats = computed(() => {
+    const startOfWeek = getStartOfWeek(Date.now())
+    const weekSessions = sessions.value.filter(s => s.endedAt >= startOfWeek)
+    return weekSessions.reduce(
+      (acc, s) => {
+        acc.minutes += s.minutes
+        acc.cost += s.cost
+        return acc
+      },
+      { minutes: 0, cost: 0, count: weekSessions.length }
+    )
+  })
+
+  const monthStats = computed(() => {
+    const startOfMonth = getStartOfMonth(Date.now())
+    const monthSessions = sessions.value.filter(s => s.endedAt >= startOfMonth)
+    return monthSessions.reduce(
+      (acc, s) => {
+        acc.minutes += s.minutes
+        acc.cost += s.cost
+        return acc
+      },
+      { minutes: 0, cost: 0, count: monthSessions.length }
+    )
+  })
+
+  const yearStats = computed(() => {
+    const startOfYear = getStartOfYear(Date.now())
+    const yearSessions = sessions.value.filter(s => s.endedAt >= startOfYear)
+    return yearSessions.reduce(
+      (acc, s) => {
+        acc.minutes += s.minutes
+        acc.cost += s.cost
+        return acc
+      },
+      { minutes: 0, cost: 0, count: yearSessions.length }
+    )
+  })
+
+  const todayTrend = computed(() => {
+    const yesterdayStart = getStartOfDay(Date.now() - 86400000)
+    const yesterdayEnd = getStartOfDay(Date.now())
+    const yesterdaySessions = sessions.value.filter(s => s.endedAt >= yesterdayStart && s.endedAt < yesterdayEnd)
+    const yesterdayCost = yesterdaySessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = todayStats.value.cost - yesterdayCost
+    const percentChange = yesterdayCost === 0 ? (change > 0 ? 100 : 0) : (change / yesterdayCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const weekTrend = computed(() => {
+    const prevWeekStart = getStartOfWeek(Date.now() - 7 * 86400000)
+    const prevWeekEnd = getStartOfWeek(Date.now())
+    const prevWeekSessions = sessions.value.filter(s => s.endedAt >= prevWeekStart && s.endedAt < prevWeekEnd)
+    const prevWeekCost = prevWeekSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = weekStats.value.cost - prevWeekCost
+    const percentChange = prevWeekCost === 0 ? (change > 0 ? 100 : 0) : (change / prevWeekCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const monthTrend = computed(() => {
+    const prevMonthStart = getStartOfMonth(new Date(Date.now() - 30 * 86400000).getTime())
+    const prevMonthEnd = getStartOfMonth(Date.now())
+    const prevMonthSessions = sessions.value.filter(s => s.endedAt >= prevMonthStart && s.endedAt < prevMonthEnd)
+    const prevMonthCost = prevMonthSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = monthStats.value.cost - prevMonthCost
+    const percentChange = prevMonthCost === 0 ? (change > 0 ? 100 : 0) : (change / prevMonthCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const yearTrend = computed(() => {
+    const prevYearStart = getStartOfYear(Date.now() - 365 * 86400000)
+    const prevYearEnd = getStartOfYear(Date.now())
+    const prevYearSessions = sessions.value.filter(s => s.endedAt >= prevYearStart && s.endedAt < prevYearEnd)
+    const prevYearCost = prevYearSessions.reduce((sum, s) => sum + s.cost, 0)
+    const change = yearStats.value.cost - prevYearCost
+    const percentChange = prevYearCost === 0 ? (change > 0 ? 100 : 0) : (change / prevYearCost) * 100
+    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  })
+
+  const avgSessionTime = computed(() => {
+    return incidentCount.value > 0 ? totals.value.minutes / incidentCount.value : 0
+  })
+
+  const costPerMinute = computed(() => rate.value / 60)
+
+  const peakDayThisMonth = computed(() => {
+    const startOfMonth = getStartOfMonth(Date.now())
+    const monthSessions = sessions.value.filter(s => s.endedAt >= startOfMonth)
+    const dayMap = new Map<string, { cost: number; count: number }>()
+
+    monthSessions.forEach(s => {
+      const day = new Date(s.startedAt).toDateString()
+      const existing = dayMap.get(day) || { cost: 0, count: 0 }
+      existing.cost += s.cost
+      existing.count += 1
+      dayMap.set(day, existing)
+    })
+
+    let max = { day: '', cost: 0, count: 0 }
+    for (const [day, data] of dayMap) {
+      if (data.cost > max.cost) {
+        max = { day, cost: data.cost, count: data.count }
+      }
+    }
+    return max
+  })
 
   const sortedSessions = computed(() =>
     [...sessions.value].sort((a, b) => b.cost - a.cost)
@@ -381,22 +553,38 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     selectedCategoryId,
     nextId,
     nextBoomerId,
+    dateRange,
+    filteredBoomers,
+    filteredCategories,
 
     isRunning,
     selectedBoomer,
     selectedCategory,
+    currentSessionInfo,
 
     currentDurationMs,
     severity,
 
     totals,
     incidentCount,
+    filteredSessions,
     sortedSessions,
     daysActive,
     avgPerDay,
     avgPerWeek,
     avgPerYear,
     weeklySummary,
+    todayStats,
+    weekStats,
+    monthStats,
+    yearStats,
+    todayTrend,
+    weekTrend,
+    monthTrend,
+    yearTrend,
+    avgSessionTime,
+    costPerMinute,
+    peakDayThisMonth,
     boomerLeaderboard,
     categoryLeaderboard,
     sessionDetails,

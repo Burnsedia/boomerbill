@@ -99,7 +99,7 @@ function addQuickSession(minutes: number, label: string) {
   </p>
 
   <!-- Quick Adds (unchanged layout) -->
-  <div class="flex flex-wrap gap-2 mt-3">
+  <div class="grid grid-cols-2 gap-2 mt-3 sm:flex sm:flex-wrap">
     <button
       v-for="p in presets"
       :key="p.label"

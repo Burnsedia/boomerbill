@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
+import ActiveSession from './ActiveSession.vue'
 import BoomerSelect from './BoomerSelect.vue'
 import CategoryGrid from './CategoryGrid.vue'
 import RateInput from './RateInput.vue'
@@ -42,16 +43,16 @@ const lastSessionSummary = computed(() => {
 
 <template>
   <div class="grid gap-4">
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <div class="card bg-base-200 border border-primary shadow-lg w-full">
       <div class="card-body gap-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
             <h2 class="card-title">Session</h2>
             <span class="badge badge-sm" :class="statusClass">
               {{ statusLabel }}
             </span>
           </div>
-          <p class="text-xs opacity-70">
+          <p class="text-xs opacity-70 break-words">
             {{ selectionSummary }}
           </p>
         </div>
@@ -69,6 +70,7 @@ const lastSessionSummary = computed(() => {
 
           <div class="space-y-4 md:border-l md:border-base-300 md:pl-6">
             <div class="text-sm font-semibold">Live Session</div>
+            <ActiveSession />
             <Timer />
             <div v-if="lastSession" class="text-xs opacity-70">
               Last session: {{ lastSessionSummary }}

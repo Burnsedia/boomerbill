@@ -27,9 +27,13 @@ describe('LoggingPage.vue', () => {
     const wrapper = mount(LoggingPage, { global: { plugins: [pinia] } })
     expect(wrapper.text()).toContain('No sessions logged yet')
 
-    const buttons = wrapper.findAll('button')
-    expect(buttons[0].attributes('disabled')).toBeDefined()
-    expect(buttons[1].attributes('disabled')).toBeDefined()
+    const getButton = (label: string) =>
+      wrapper.findAll('button').find(button => button.text().includes(label))
+
+    expect(getButton('Copy Summary')?.attributes('disabled')).toBeDefined()
+    expect(getButton('Copy CSV')?.attributes('disabled')).toBeDefined()
+    expect(getButton('Export CSV')?.attributes('disabled')).toBeDefined()
+    expect(getButton('Clear All')?.attributes('disabled')).toBeDefined()
   })
 
   it('renders rows when sessions exist', () => {
