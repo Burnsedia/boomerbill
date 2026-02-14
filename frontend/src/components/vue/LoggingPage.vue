@@ -156,8 +156,32 @@ function formatDate(timestamp: number) {
           No sessions logged yet. Start a timer on the dashboard to record one.
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="table table-zebra">
+        <div v-else>
+          <div class="space-y-3 md:hidden">
+            <div
+              v-for="session in rows"
+              :key="session.id"
+              class="card bg-base-300 border border-base-100"
+            >
+              <div class="card-body gap-2">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm font-semibold">{{ session.boomerName }}</div>
+                  <div class="text-xs opacity-70">{{ formatDate(session.endedAt) }}</div>
+                </div>
+                <div class="text-xs opacity-70">{{ session.categoryName }}</div>
+                <div class="flex items-center justify-between text-sm">
+                  <div>{{ session.minutes }} min</div>
+                  <div class="font-mono font-semibold">${{ session.cost.toFixed(2) }}</div>
+                </div>
+                <div v-if="session.note" class="text-xs opacity-70">
+                  {{ session.note }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto hidden md:block">
+            <table class="table table-zebra min-w-[640px]">
             <thead>
               <tr>
                 <th>Date</th>
@@ -180,7 +204,8 @@ function formatDate(timestamp: number) {
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
     </div>
