@@ -126,6 +126,63 @@
     </div>
   </section>
 
+  <section class="grid gap-6 md:grid-cols-2">
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg">Support BoomerBill</h2>
+        <p class="text-sm opacity-70">
+          Help fund the live leaderboard, community message board, and the Boomer Gigs marketplace.
+        </p>
+        <div>
+          <a
+            href="https://github.com/sponsors/Burnsedia/"
+            class="btn btn-primary"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Sponsor on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg">Get early access</h2>
+        <p class="text-sm opacity-70">
+          Join the list for early access to the Worst Boomers leaderboard,
+          community features, and future releases.
+        </p>
+        <form
+          name="newsletter"
+          method="POST"
+          data-netlify="true"
+          data-netlify-honeypot="bot-field"
+          action="/thanks"
+          class="space-y-3"
+        >
+          <input type="hidden" name="form-name" value="newsletter" />
+          <p class="hidden">
+            <label>
+              Don’t fill this out: <input name="bot-field" />
+            </label>
+          </p>
+          <input
+            type="email"
+            name="email"
+            class="input input-bordered w-full"
+            placeholder="you@domain.com"
+            required
+          />
+          <button type="submit" class="btn btn-primary w-full">
+            Get early access
+          </button>
+          <p class="text-xs opacity-60">No spam. Unsubscribe anytime.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
   <section class="alert alert-warning shadow-lg">
     <span>
       BoomerBill does not send real invoices.
