@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 const store = useBoomerBill()
+const note = ref('')
 
-// Presets (unchanged)
 const presets = [
   { label: 'Just one quick thing', min: 5 },
   { label: 'Wi-Fi stopped working', min: 15 },
@@ -12,11 +12,8 @@ const presets = [
   { label: 'I broke something', min: 60 }
 ]
 
-// ─────────────────────────────────────────────
-// TICKING CLOCK (UI ONLY)
-// ─────────────────────────────────────────────
 const now = ref(Date.now())
-let interval = null
+let interval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   interval = setInterval(() => {
@@ -28,32 +25,51 @@ onUnmounted(() => {
   if (interval) clearInterval(interval)
 })
 
+const canStart = computed(() => !!store.selectedBoomerId && !!store.selectedCategoryId)
+
 const elapsedMs = computed(() => {
   if (!store.startTime) return 0
   return now.value - store.startTime
 })
 
-const minutes = computed(() =>
-  Math.floor(elapsedMs.value / 60000)
-)
+const minutes = computed(() => Math.floor(elapsedMs.value / 60000))
 
-const seconds = computed(() =>
-  Math.floor((elapsedMs.value % 60000) / 1000)
-)
+const seconds = computed(() => Math.floor((elapsedMs.value % 60000) / 1000))
 
 const liveCost = computed(() =>
   ((elapsedMs.value / 3600000) * store.rate).toFixed(2)
 )
+
+function handleStart() {
+  if (!canStart.value) {
+    alert('Select a boomer and category first.')
+    return
+  }
+  store.start()
+}
+
+function handleStop() {
+  store.stop(note.value.trim() || undefined)
+  note.value = ''
+}
+
+function addQuickSession(minutes: number, label: string) {
+  if (!canStart.value) {
+    alert('Select a boomer and category first.')
+    return
+  }
+  store.addSession({ minutes, note: label })
+}
 </script>
 
 <template>
   <!-- Controls -->
   <div class="flex gap-2 items-center">
-    <button class="btn btn-success" :disabled="store.startTime" @click="store.start()">
+    <button class="btn btn-success" :disabled="store.startTime || !canStart" @click="handleStart">
       Start
     </button>
 
-    <button class="btn btn-error" :disabled="!store.startTime" @click="store.stop()">
+    <button class="btn btn-error" :disabled="!store.startTime" @click="handleStop">
       Stop
     </button>
 
@@ -66,14 +82,31 @@ const liveCost = computed(() =>
   </div>
 
   <!-- Warning text (unchanged) -->
+  <div v-if="store.startTime" class="mt-3">
+    <label class="label">
+      <span class="label-text">Session Note (optional)</span>
+    </label>
+    <input
+      v-model="note"
+      type="text"
+      class="input input-bordered w-full"
+      placeholder="What did you fix?"
+    />
+  </div>
+
   <p v-if="store.startTime" class="text-xs text-warning mt-2">
     You are currently losing money.
   </p>
 
   <!-- Quick Adds (unchanged layout) -->
   <div class="flex flex-wrap gap-2 mt-3">
-    <button v-for="p in presets" :key="p.label" class="btn btn-xs btn-outline"
-      @click="store.addSession(p.min, p.label)">
+    <button
+      v-for="p in presets"
+      :key="p.label"
+      class="btn btn-xs btn-outline"
+      :disabled="!canStart || store.startTime"
+      @click="addQuickSession(p.min, p.label)"
+    >
       {{ p.label }} ({{ p.min }}m)
     </button>
   </div>
