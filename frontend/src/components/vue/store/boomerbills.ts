@@ -41,6 +41,8 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'general', name: 'General Tech Support', icon: 'wrench', isDefault: true }
 ]
 
+const DEFAULT_BOOMERS = ['Dad', 'Mom', 'Uncle Dave']
+
 const LEGACY_BOOMER_ID = 'legacy'
 
 export const useBoomerBill = defineStore('boomerbills', () => {
@@ -56,6 +58,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const dateRange = ref<{ start: number | null; end: number | null }>({ start: null, end: null })
   const filteredBoomers = ref<string[]>([])
   const filteredCategories = ref<string[]>([])
+  const hasOnboarded = ref<boolean>(false)
 
   const isRunning = computed(() => startTime.value !== null)
 
@@ -178,6 +181,8 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   function addBoomer(name: string) {
     const trimmed = name.trim()
     if (!trimmed) return
+    const existing = boomers.value.find(b => b.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) return existing.id
     const id = `boomer-${nextBoomerId.value++}`
     boomers.value.push({ id, name: trimmed, createdAt: Date.now() })
     persist()
@@ -536,6 +541,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const nb = localStorage.getItem('bb_next_boomer_id')
     const lastBoomerId = localStorage.getItem('bb_last_boomer_id')
     const lastCategoryId = localStorage.getItem('bb_last_category_id')
+    const onboarded = localStorage.getItem('bb_onboarded')
 
     if (r) rate.value = Number(r)
     if (b) boomers.value = JSON.parse(b)
@@ -550,6 +556,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     }
     if (n) nextId.value = Number(n)
     if (nb) nextBoomerId.value = Number(nb)
+    if (onboarded) hasOnboarded.value = onboarded === 'true'
 
     ensureLegacyBoomerIfNeeded(sessions.value)
     if (lastBoomerId && boomers.value.some(b => b.id === lastBoomerId)) {
@@ -575,6 +582,13 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     localStorage.setItem('bb_next_boomer_id', String(nextBoomerId.value))
   }
 
+  function setOnboarded(value: boolean) {
+    hasOnboarded.value = value
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bb_onboarded', String(value))
+    }
+  }
+
   return {
     rate,
     sessions,
@@ -588,6 +602,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     dateRange,
     filteredBoomers,
     filteredCategories,
+    hasOnboarded,
 
     isRunning,
     selectedBoomer,
@@ -621,6 +636,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     categoryLeaderboard,
     sessionDetails,
     exportCSV,
+    DEFAULT_BOOMERS,
 
     start,
     stop,
@@ -632,6 +648,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     addCategory,
     removeCategory,
     selectCategory,
+    setOnboarded,
     load,
     persist
   }
