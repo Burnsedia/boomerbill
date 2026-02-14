@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 import Totals from './Totals.vue'
 import TimeStatCard from './TimeStatCard.vue'
@@ -8,10 +8,48 @@ import LeaderboardTabs from './LeaderboardTabs.vue'
 
 const store = useBoomerBill()
 
-const filteredSessions = computed(() => store.filteredSessions)
+const currentPeriodBoomerId = ref<string | null>(null)
+const historicalBoomerId = ref<string | null>(null)
+const averagesBoomerId = ref<string | null>(null)
+
+function filterByBoomer(sessions: typeof store.sessions, boomerId: string | null) {
+  if (!boomerId) return sessions
+  return sessions.filter(session => session.boomerId === boomerId)
+}
+
+function getStartOfDay(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function getStartOfWeek(timestamp: number): number {
+  const date = new Date(timestamp)
+  const day = date.getDay()
+  const diff = date.getDate() - day
+  date.setDate(diff)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function getStartOfMonth(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setDate(1)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function getStartOfYear(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setMonth(0, 1)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+const averagesSessions = computed(() => filterByBoomer(store.sessions, averagesBoomerId.value))
 
 const filteredSessionDetails = computed(() => {
-  return filteredSessions.value
+  return averagesSessions.value
     .map(session => {
       const boomer = store.boomers.find(b => b.id === session.boomerId)
       const category = store.categories.find(c => c.id === session.categoryId)
@@ -44,13 +82,13 @@ const peakDayMinutes = computed(() => {
 })
 
 const avgCostPerSession = computed(() => {
-  if (filteredSessions.value.length === 0) return 0
-  const totalCost = filteredSessions.value.reduce((sum, session) => sum + session.cost, 0)
-  return totalCost / filteredSessions.value.length
+  if (averagesSessions.value.length === 0) return 0
+  const totalCost = averagesSessions.value.reduce((sum, session) => sum + session.cost, 0)
+  return totalCost / averagesSessions.value.length
 })
 
 const filteredTotals = computed(() => {
-  return filteredSessions.value.reduce(
+  return averagesSessions.value.reduce(
     (acc, session) => {
       acc.minutes += session.minutes
       acc.cost += session.cost
@@ -61,38 +99,81 @@ const filteredTotals = computed(() => {
 })
 
 const filteredAvgSessionTime = computed(() => {
-  if (filteredSessions.value.length === 0) return 0
-  return filteredTotals.value.minutes / filteredSessions.value.length
+  if (averagesSessions.value.length === 0) return 0
+  return filteredTotals.value.minutes / averagesSessions.value.length
 })
 
 const filteredAvgSessionTimeRounded = computed(() => {
   return Math.round(filteredAvgSessionTime.value)
 })
 
-const filterCount = computed(() => {
-  return store.filteredBoomers.length + store.filteredCategories.length
+const currentPeriodSessions = computed(() => filterByBoomer(store.sessions, currentPeriodBoomerId.value))
+const historicalSessions = computed(() => filterByBoomer(store.sessions, historicalBoomerId.value))
+
+const currentTodayStats = computed(() => {
+  const startOfDay = getStartOfDay(Date.now())
+  const today = currentPeriodSessions.value.filter(s => s.endedAt >= startOfDay)
+  return today.reduce(
+    (acc, session) => {
+      acc.minutes += session.minutes
+      acc.cost += session.cost
+      return acc
+    },
+    { minutes: 0, cost: 0, count: today.length }
+  )
 })
 
-function toggleBoomer(id: string) {
-  if (store.filteredBoomers.includes(id)) {
-    store.filteredBoomers = store.filteredBoomers.filter(item => item !== id)
-    return
-  }
-  store.filteredBoomers = [...store.filteredBoomers, id]
-}
+const currentWeekStats = computed(() => {
+  const startOfWeek = getStartOfWeek(Date.now())
+  const week = currentPeriodSessions.value.filter(s => s.endedAt >= startOfWeek)
+  return week.reduce(
+    (acc, session) => {
+      acc.minutes += session.minutes
+      acc.cost += session.cost
+      return acc
+    },
+    { minutes: 0, cost: 0, count: week.length }
+  )
+})
 
-function toggleCategory(id: string) {
-  if (store.filteredCategories.includes(id)) {
-    store.filteredCategories = store.filteredCategories.filter(item => item !== id)
-    return
-  }
-  store.filteredCategories = [...store.filteredCategories, id]
-}
+const currentMonthStats = computed(() => {
+  const startOfMonth = getStartOfMonth(Date.now())
+  const month = currentPeriodSessions.value.filter(s => s.endedAt >= startOfMonth)
+  return month.reduce(
+    (acc, session) => {
+      acc.minutes += session.minutes
+      acc.cost += session.cost
+      return acc
+    },
+    { minutes: 0, cost: 0, count: month.length }
+  )
+})
 
-function clearDashboardFilters() {
-  store.filteredBoomers = []
-  store.filteredCategories = []
-}
+const historicalYearStats = computed(() => {
+  const startOfYear = getStartOfYear(Date.now())
+  const year = historicalSessions.value.filter(s => s.endedAt >= startOfYear)
+  return year.reduce(
+    (acc, session) => {
+      acc.minutes += session.minutes
+      acc.cost += session.cost
+      return acc
+    },
+    { minutes: 0, cost: 0, count: year.length }
+  )
+})
+
+const historicalTotals = computed(() => {
+  return historicalSessions.value.reduce(
+    (acc, session) => {
+      acc.minutes += session.minutes
+      acc.cost += session.cost
+      return acc
+    },
+    { minutes: 0, cost: 0 }
+  )
+})
+
+const historicalIncidentCount = computed(() => historicalSessions.value.length)
 
 const lastSessionSummary = computed(() => {
   if (!lastSession.value) return 'No sessions yet.'
@@ -112,69 +193,6 @@ const lastSessionSummary = computed(() => {
           <div class="text-xs opacity-60">Last session: {{ lastSessionSummary }}</div>
         </div>
         <Totals />
-      </div>
-    </div>
-
-    <div class="card bg-base-200 border border-primary shadow-lg">
-      <div class="card-body">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h3 class="card-title text-base">Dashboard Filters</h3>
-          <button class="btn btn-ghost btn-sm" @click="clearDashboardFilters">
-            Clear Filters
-          </button>
-        </div>
-        <div class="mt-2 text-xs opacity-60">
-          Filters apply to Averages and Recent Sessions.
-        </div>
-
-        <div class="grid gap-4 mt-4 md:grid-cols-2">
-          <div class="space-y-2">
-            <label class="label">
-              <span class="label-text">Boomers</span>
-            </label>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="boomer in store.boomers"
-                :key="boomer.id"
-                class="btn btn-sm"
-                :class="store.filteredBoomers.includes(boomer.id) ? 'btn-primary' : 'btn-outline'"
-              >
-                <input
-                  type="checkbox"
-                  class="hidden"
-                  :checked="store.filteredBoomers.includes(boomer.id)"
-                  @change="toggleBoomer(boomer.id)"
-                  :aria-label="boomer.name"
-                />
-                {{ boomer.name }}
-              </label>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="label">
-              <span class="label-text">Categories</span>
-            </label>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="category in store.categories"
-                :key="category.id"
-                class="btn btn-sm"
-                :class="store.filteredCategories.includes(category.id) ? 'btn-primary' : 'btn-outline'"
-              >
-                <input
-                  type="checkbox"
-                  class="hidden"
-                  :checked="store.filteredCategories.includes(category.id)"
-                  @change="toggleCategory(category.id)"
-                  :aria-label="category.name"
-                />
-                {{ category.name }}
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-3 text-xs opacity-60">Active filters: {{ filterCount }}</div>
       </div>
     </div>
 
@@ -217,6 +235,31 @@ const lastSessionSummary = computed(() => {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <h3 class="card-title font-mono">Averages</h3>
+        <div class="mt-2">
+          <div class="label">
+            <span class="label-text">Filter by Boomer</span>
+          </div>
+          <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+            <input
+              class="btn btn-sm filter-reset"
+              type="radio"
+              name="avg-boomer"
+              aria-label="All"
+              :checked="averagesBoomerId === null"
+              @change="averagesBoomerId = null"
+            />
+            <input
+              v-for="boomer in store.boomers"
+              :key="boomer.id"
+              class="btn btn-sm"
+              type="radio"
+              name="avg-boomer"
+              :aria-label="boomer.name"
+              :checked="averagesBoomerId === boomer.id"
+              @change="averagesBoomerId = boomer.id"
+            />
+          </div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TimeStatCard
             title="Avg Session Time"
@@ -239,27 +282,49 @@ const lastSessionSummary = computed(() => {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <h3 class="card-title font-mono">Current Period Damage</h3>
+        <div class="mt-2">
+          <div class="label">
+            <span class="label-text">Filter by Boomer</span>
+          </div>
+          <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+            <input
+              class="btn btn-sm filter-reset"
+              type="radio"
+              name="current-boomer"
+              aria-label="All"
+              :checked="currentPeriodBoomerId === null"
+              @change="currentPeriodBoomerId = null"
+            />
+            <input
+              v-for="boomer in store.boomers"
+              :key="boomer.id"
+              class="btn btn-sm"
+              type="radio"
+              name="current-boomer"
+              :aria-label="boomer.name"
+              :checked="currentPeriodBoomerId === boomer.id"
+              @change="currentPeriodBoomerId = boomer.id"
+            />
+          </div>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <TimeStatCard
             title="Today's Damage"
-            :minutes="store.todayStats.minutes"
-            :cost="store.todayStats.cost"
-            :count="store.todayStats.count"
-            :comparison="store.todayTrend"
+            :minutes="currentTodayStats.minutes"
+            :cost="currentTodayStats.cost"
+            :count="currentTodayStats.count"
           />
           <TimeStatCard
             title="This Week's Damage"
-            :minutes="store.weekStats.minutes"
-            :cost="store.weekStats.cost"
-            :count="store.weekStats.count"
-            :comparison="store.weekTrend"
+            :minutes="currentWeekStats.minutes"
+            :cost="currentWeekStats.cost"
+            :count="currentWeekStats.count"
           />
           <TimeStatCard
             title="This Month's Damage"
-            :minutes="store.monthStats.minutes"
-            :cost="store.monthStats.cost"
-            :count="store.monthStats.count"
-            :comparison="store.monthTrend"
+            :minutes="currentMonthStats.minutes"
+            :cost="currentMonthStats.cost"
+            :count="currentMonthStats.count"
           />
         </div>
       </div>
@@ -270,19 +335,43 @@ const lastSessionSummary = computed(() => {
         <details class="collapse collapse-arrow md:collapse-open">
           <summary class="collapse-title font-mono text-lg">Historical Damage</summary>
           <div class="collapse-content">
+            <div class="mb-4">
+              <div class="label">
+                <span class="label-text">Filter by Boomer</span>
+              </div>
+              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+                <input
+                  class="btn btn-sm filter-reset"
+                  type="radio"
+                  name="historical-boomer"
+                  aria-label="All"
+                  :checked="historicalBoomerId === null"
+                  @change="historicalBoomerId = null"
+                />
+                <input
+                  v-for="boomer in store.boomers"
+                  :key="boomer.id"
+                  class="btn btn-sm"
+                  type="radio"
+                  name="historical-boomer"
+                  :aria-label="boomer.name"
+                  :checked="historicalBoomerId === boomer.id"
+                  @change="historicalBoomerId = boomer.id"
+                />
+              </div>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <TimeStatCard
                 title="This Year's Damage"
-                :minutes="store.yearStats.minutes"
-                :cost="store.yearStats.cost"
-                :count="store.yearStats.count"
-                :comparison="store.yearTrend"
+                :minutes="historicalYearStats.minutes"
+                :cost="historicalYearStats.cost"
+                :count="historicalYearStats.count"
               />
               <TimeStatCard
                 title="All-Time Totals"
-                :minutes="store.totals.minutes"
-                :cost="store.totals.cost"
-                :count="store.incidentCount"
+                :minutes="historicalTotals.minutes"
+                :cost="historicalTotals.cost"
+                :count="historicalIncidentCount"
               />
               <TimeStatCard
                 title="Peak Day Cost"
