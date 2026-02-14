@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { createPinia } from 'pinia'
-import { getCurrentInstance, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, onMounted, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 import DashboardPage from './DashboardPage.vue'
 import SessionPage from './SessionPage.vue'
 import LoggingPage from './LoggingPage.vue'
 import SettingsPage from './SettingsPage.vue'
+import OnboardingModal from './OnboardingModal.vue'
 
 const pinia = createPinia()
 const app = getCurrentInstance()?.appContext.app
@@ -14,6 +15,7 @@ app?.use(pinia)
 
 const store = useBoomerBill()
 const currentView = ref<'session' | 'dashboard' | 'logging' | 'settings'>('session')
+const showOnboarding = computed(() => !store.hasOnboarded)
 
 onMounted(() => {
   store.load()
@@ -22,6 +24,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-4 w-full">
+    <OnboardingModal v-if="showOnboarding" />
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <div class="flex flex-wrap gap-2">
