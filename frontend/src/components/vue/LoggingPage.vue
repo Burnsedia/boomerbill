@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 const store = useBoomerBill()
@@ -18,11 +18,67 @@ const rows = computed(() => {
     .sort((a, b) => b.endedAt - a.endedAt)
 })
 
+const datePreset = ref<'all' | 'today' | 'week' | 'month' | 'custom'>('all')
+
+const activeFilterCount = computed(() => {
+  const dateActive = !!store.dateRange.start || !!store.dateRange.end
+  return store.filteredBoomers.length + store.filteredCategories.length + (dateActive ? 1 : 0)
+})
+
+function getStartOfDay(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function getStartOfWeek(timestamp: number): number {
+  const date = new Date(timestamp)
+  const day = date.getDay()
+  const diff = date.getDate() - day
+  date.setDate(diff)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function getStartOfMonth(timestamp: number): number {
+  const date = new Date(timestamp)
+  date.setDate(1)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function applyPreset(preset: 'all' | 'today' | 'week' | 'month') {
+  datePreset.value = preset
+  const now = Date.now()
+
+  if (preset === 'all') {
+    store.dateRange.start = null
+    store.dateRange.end = null
+    return
+  }
+
+  if (preset === 'today') {
+    store.dateRange.start = getStartOfDay(now)
+    store.dateRange.end = now
+    return
+  }
+
+  if (preset === 'week') {
+    store.dateRange.start = getStartOfWeek(now)
+    store.dateRange.end = now
+    return
+  }
+
+  store.dateRange.start = getStartOfMonth(now)
+  store.dateRange.end = now
+}
+
 const startDate = computed({
   get() {
     return store.dateRange.start ? new Date(store.dateRange.start).toISOString().slice(0, 10) : ''
   },
   set(value: string) {
+    datePreset.value = 'custom'
     store.dateRange.start = value ? new Date(`${value}T00:00:00`).getTime() : null
   }
 })
@@ -32,6 +88,7 @@ const endDate = computed({
     return store.dateRange.end ? new Date(store.dateRange.end).toISOString().slice(0, 10) : ''
   },
   set(value: string) {
+    datePreset.value = 'custom'
     store.dateRange.end = value ? new Date(`${value}T23:59:59`).getTime() : null
   }
 })
@@ -67,7 +124,17 @@ function clearFilters() {
   store.dateRange.end = null
   store.filteredBoomers = []
   store.filteredCategories = []
+  datePreset.value = 'all'
 }
+
+watch(
+  () => [store.dateRange.start, store.dateRange.end],
+  ([start, end]) => {
+    if (!start && !end) {
+      datePreset.value = 'all'
+    }
+  }
+)
 
 function formatDate(timestamp: number) {
   return new Date(timestamp).toLocaleString()
@@ -113,6 +180,52 @@ function formatDate(timestamp: number) {
           </button>
         </div>
 
+        <div class="mt-3 text-xs opacity-60">
+          Active filters: {{ activeFilterCount }}
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div>
+            <div class="label">
+              <span class="label-text">Date Presets</span>
+            </div>
+            <div class="filter flex flex-wrap gap-2">
+              <input
+                class="btn filter-reset btn-sm"
+                type="radio"
+                name="date-filter"
+                aria-label="All"
+                :checked="datePreset === 'all'"
+                @change="applyPreset('all')"
+              />
+              <input
+                class="btn btn-sm"
+                type="radio"
+                name="date-filter"
+                aria-label="Today"
+                :checked="datePreset === 'today'"
+                @change="applyPreset('today')"
+              />
+              <input
+                class="btn btn-sm"
+                type="radio"
+                name="date-filter"
+                aria-label="This Week"
+                :checked="datePreset === 'week'"
+                @change="applyPreset('week')"
+              />
+              <input
+                class="btn btn-sm"
+                type="radio"
+                name="date-filter"
+                aria-label="This Month"
+                :checked="datePreset === 'month'"
+                @change="applyPreset('month')"
+              />
+            </div>
+          </div>
+        </div>
+
         <div class="grid gap-4 mt-4 md:grid-cols-2">
           <div class="space-y-2">
             <label class="label">
@@ -130,21 +243,45 @@ function formatDate(timestamp: number) {
             <label class="label">
               <span class="label-text">Boomers</span>
             </label>
-            <select v-model="store.filteredBoomers" multiple class="select select-bordered w-full min-h-[3.5rem]">
-              <option v-for="boomer in store.boomers" :key="boomer.id" :value="boomer.id">
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="boomer in store.boomers"
+                :key="boomer.id"
+                class="btn btn-sm"
+                :class="store.filteredBoomers.includes(boomer.id) ? 'btn-primary' : 'btn-outline'"
+              >
+                <input
+                  v-model="store.filteredBoomers"
+                  type="checkbox"
+                  class="hidden"
+                  :value="boomer.id"
+                  :aria-label="boomer.name"
+                />
                 {{ boomer.name }}
-              </option>
-            </select>
+              </label>
+            </div>
           </div>
           <div class="space-y-2">
             <label class="label">
               <span class="label-text">Categories</span>
             </label>
-            <select v-model="store.filteredCategories" multiple class="select select-bordered w-full min-h-[3.5rem]">
-              <option v-for="category in store.categories" :key="category.id" :value="category.id">
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="category in store.categories"
+                :key="category.id"
+                class="btn btn-sm"
+                :class="store.filteredCategories.includes(category.id) ? 'btn-primary' : 'btn-outline'"
+              >
+                <input
+                  v-model="store.filteredCategories"
+                  type="checkbox"
+                  class="hidden"
+                  :value="category.id"
+                  :aria-label="category.name"
+                />
                 {{ category.name }}
-              </option>
-            </select>
+              </label>
+            </div>
           </div>
         </div>
       </div>
