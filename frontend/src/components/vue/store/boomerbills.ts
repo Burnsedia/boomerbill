@@ -187,11 +187,22 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   function removeBoomer(id: string) {
     boomers.value = boomers.value.filter(b => b.id !== id)
     if (selectedBoomerId.value === id) selectedBoomerId.value = null
+    if (typeof window !== 'undefined') {
+      const lastBoomer = localStorage.getItem('bb_last_boomer_id')
+      if (lastBoomer === id) localStorage.removeItem('bb_last_boomer_id')
+    }
     persist()
   }
 
   function selectBoomer(id: string | null) {
     selectedBoomerId.value = id
+    if (typeof window !== 'undefined') {
+      if (id) {
+        localStorage.setItem('bb_last_boomer_id', id)
+      } else {
+        localStorage.removeItem('bb_last_boomer_id')
+      }
+    }
   }
 
   function addCategory(name: string) {
@@ -210,11 +221,22 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     }
     categories.value = categories.value.filter(c => c.id !== id)
     if (selectedCategoryId.value === id) selectedCategoryId.value = null
+    if (typeof window !== 'undefined') {
+      const lastCategory = localStorage.getItem('bb_last_category_id')
+      if (lastCategory === id) localStorage.removeItem('bb_last_category_id')
+    }
     persist()
   }
 
   function selectCategory(id: string | null) {
     selectedCategoryId.value = id
+    if (typeof window !== 'undefined') {
+      if (id) {
+        localStorage.setItem('bb_last_category_id', id)
+      } else {
+        localStorage.removeItem('bb_last_category_id')
+      }
+    }
   }
 
   const totals = computed(() => {
@@ -512,6 +534,8 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const c = localStorage.getItem('bb_categories')
     const n = localStorage.getItem('bb_next_id')
     const nb = localStorage.getItem('bb_next_boomer_id')
+    const lastBoomerId = localStorage.getItem('bb_last_boomer_id')
+    const lastCategoryId = localStorage.getItem('bb_last_category_id')
 
     if (r) rate.value = Number(r)
     if (b) boomers.value = JSON.parse(b)
@@ -528,7 +552,15 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     if (nb) nextBoomerId.value = Number(nb)
 
     ensureLegacyBoomerIfNeeded(sessions.value)
-    if (!selectedCategoryId.value && categories.value.length > 0) {
+    if (lastBoomerId && boomers.value.some(b => b.id === lastBoomerId)) {
+      selectedBoomerId.value = lastBoomerId
+    } else if (!selectedBoomerId.value && boomers.value.length === 1) {
+      selectedBoomerId.value = boomers.value[0].id
+    }
+
+    if (lastCategoryId && categories.value.some(c => c.id === lastCategoryId)) {
+      selectedCategoryId.value = lastCategoryId
+    } else if (!selectedCategoryId.value && categories.value.length > 0) {
       selectedCategoryId.value = categories.value[0].id
     }
   }
