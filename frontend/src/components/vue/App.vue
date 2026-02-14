@@ -30,11 +30,15 @@ onMounted(() => {
       <div class="card-body gap-4">
         <h2 class="card-title">Session</h2>
         <RateInput />
+      </div>
+    </div>
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body gap-4">
+        <h2 class="card-title">Session</h2>
         <Timer />
       </div>
     </div>
-
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <div class="md:col-span-2 card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-2">
         <h2 class="card-title">Lifetime Damage</h2>
         <Totals />
