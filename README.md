@@ -144,4 +144,7 @@ Once you see the number, you can decide what to do next.
 
 ## License
 
-AGPLv3
+AGPL-3.0-or-later
+
+This project is licensed under the GNU Affero General Public License v3.0 or later.
+If you run a modified version of this app as a network service, you must provide the source code to users.
