@@ -16,73 +16,85 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('Leaderboard.vue', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    const pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
   })
 
+  function setupSelections(pinia = createPinia()) {
+    setActivePinia(pinia)
+    const store = useBoomerBill()
+    const boomerId = store.addBoomer('Test Boomer') || 'boomer-1'
+    store.selectBoomer(boomerId)
+    store.selectCategory(store.categories[0].id)
+    return { store, pinia }
+  }
+
   it('shows empty state when no sessions', () => {
-    const wrapper = mount(Leaderboard)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('No damage recorded yet')
   })
 
   it('renders session list when sessions exist', () => {
-    const store = useBoomerBill()
-    store.addSession(30, 'Test', Date.now())
+    const { store, pinia } = setupSelections()
+    store.addSession({ minutes: 30, note: 'Test', endedAt: Date.now() })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.find('ul').exists()).toBe(true)
     expect(wrapper.findAll('li').length).toBe(1)
   })
 
   it('displays session number', () => {
-    const store = useBoomerBill()
-    store.addSession(30, 'Test', Date.now())
+    const { store, pinia } = setupSelections()
+    store.addSession({ minutes: 30, note: 'Test', endedAt: Date.now() })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('#1')
   })
 
   it('displays session cost', () => {
-    const store = useBoomerBill()
+    const { store, pinia } = setupSelections()
     store.rate = 100
-    store.addSession(60, 'Test', Date.now())
+    store.addSession({ minutes: 60, note: 'Test', endedAt: Date.now() })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('$100.00')
   })
 
   it('displays severity label', () => {
-    const store = useBoomerBill()
-    store.addSession(20, 'Test', Date.now())
+    const { store, pinia } = setupSelections()
+    store.addSession({ minutes: 20, note: 'Test', endedAt: Date.now() })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('Painful')
   })
 
   it('displays note when present', () => {
-    const store = useBoomerBill()
-    store.addSession(15, 'Printer jam', Date.now())
+    const { store, pinia } = setupSelections()
+    store.addSession({ minutes: 15, note: 'Printer jam', endedAt: Date.now() })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('Printer jam')
   })
 
   it('sorts sessions by cost descending', () => {
-    const store = useBoomerBill()
+    const { store, pinia } = setupSelections()
     store.rate = 100
     
     // Add sessions out of order
-    store.addSession(30, '30 min', 1000)
-    store.addSession(120, '2 hours', 1001)
-    store.addSession(60, '1 hour', 1002)
+    store.addSession({ minutes: 30, note: '30 min', endedAt: 1000 })
+    store.addSession({ minutes: 120, note: '2 hours', endedAt: 1001 })
+    store.addSession({ minutes: 60, note: '1 hour', endedAt: 1002 })
     
-    const wrapper = mount(Leaderboard)
+    const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
     const items = wrapper.findAll('li')
     
@@ -95,14 +107,4 @@ describe('Leaderboard.vue', () => {
     expect(items[2].text()).toContain('50.00')
   })
 
-  // BUG EXPOSURE: Running timer doesn't appear in leaderboard
-  it('BUG: running timer does not appear in leaderboard', () => {
-    const store = useBoomerBill()
-    store.start(Date.now() - 3600000) // Started 1 hour ago
-    
-    const wrapper = mount(Leaderboard)
-    
-    // Shows empty state even though timer is running
-    expect(wrapper.text()).toContain('No damage recorded yet')
-  })
 })

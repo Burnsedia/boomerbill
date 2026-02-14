@@ -16,27 +16,34 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('RateInput.vue', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    const pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
   })
 
   it('renders rate input label', () => {
-    const wrapper = mount(RateInput)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
     
     expect(wrapper.find('.label-text').text()).toBe('Hourly Rate')
   })
 
   it('displays default rate value', () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
     const store = useBoomerBill()
-    const wrapper = mount(RateInput)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
     
     const input = wrapper.find('input[type="number"]')
     expect((input.element as HTMLInputElement).value).toBe(String(store.rate))
   })
 
   it('updates store rate when input changes', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
     const store = useBoomerBill()
-    const wrapper = mount(RateInput)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
     
     const input = wrapper.find('input[type="number"]')
     await input.setValue(100)
@@ -45,7 +52,9 @@ describe('RateInput.vue', () => {
   })
 
   it('enforces minimum rate of 1', async () => {
-    const wrapper = mount(RateInput)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
     
     const input = wrapper.find('input[type="number"]')
     
@@ -53,14 +62,18 @@ describe('RateInput.vue', () => {
   })
 
   it('displays helper text', () => {
-    const wrapper = mount(RateInput)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
     
     expect(wrapper.text()).toContain('Default is average US developer rate')
   })
 
   it('uses number type for input', () => {
-    const wrapper = mount(RateInput)
-    
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(RateInput, { global: { plugins: [pinia] } })
+  
     const input = wrapper.find('input')
     expect(input.attributes('type')).toBe('number')
   })
