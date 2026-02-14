@@ -4,6 +4,7 @@ import { getCurrentInstance, onMounted, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 import DashboardPage from './DashboardPage.vue'
+import SessionPage from './SessionPage.vue'
 import LoggingPage from './LoggingPage.vue'
 import SettingsPage from './SettingsPage.vue'
 
@@ -12,7 +13,7 @@ const app = getCurrentInstance()?.appContext.app
 app?.use(pinia)
 
 const store = useBoomerBill()
-const currentView = ref<'dashboard' | 'logging' | 'settings'>('dashboard')
+const currentView = ref<'session' | 'dashboard' | 'logging' | 'settings'>('session')
 
 onMounted(() => {
   store.load()
@@ -24,6 +25,13 @@ onMounted(() => {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <div class="flex flex-wrap gap-2">
+          <button
+            class="btn btn-sm"
+            :class="currentView === 'session' ? 'btn-primary' : 'btn-ghost'"
+            @click="currentView = 'session'"
+          >
+            Session
+          </button>
           <button
             class="btn btn-sm"
             :class="currentView === 'dashboard' ? 'btn-primary' : 'btn-ghost'"
@@ -49,7 +57,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <DashboardPage v-if="currentView === 'dashboard'" />
+    <SessionPage v-if="currentView === 'session'" />
+    <DashboardPage v-else-if="currentView === 'dashboard'" />
     <LoggingPage v-else-if="currentView === 'logging'" />
     <SettingsPage v-else />
   </div>
