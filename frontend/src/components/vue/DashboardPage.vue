@@ -186,7 +186,7 @@ const lastSessionSummary = computed(() => {
   <div class="space-y-6">
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg">Key Insights</summary>
           <div class="collapse-content">
             <InsightsCard />
@@ -197,7 +197,7 @@ const lastSessionSummary = computed(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg">Lifetime Damage</summary>
           <div class="collapse-content">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -211,7 +211,7 @@ const lastSessionSummary = computed(() => {
 
     <div v-if="topBoomer || topCategory || store.peakDayThisMonth.day || mostFrequentCategory" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg">Top Culprits</summary>
           <div class="collapse-content">
             <div class="grid gap-3 sm:grid-cols-2">
@@ -251,7 +251,7 @@ const lastSessionSummary = computed(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title font-mono text-lg">Averages</summary>
           <div class="collapse-content">
             <div class="mt-2">
@@ -302,7 +302,7 @@ const lastSessionSummary = computed(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title font-mono text-lg">Current Period Damage</summary>
           <div class="collapse-content">
             <div class="mt-2">
@@ -357,7 +357,7 @@ const lastSessionSummary = computed(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title font-mono text-lg">Historical Damage</summary>
           <div class="collapse-content">
             <div class="mb-4">
@@ -412,7 +412,7 @@ const lastSessionSummary = computed(() => {
 
     <div v-if="recentSessions.length > 0" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg">Recent Sessions</summary>
           <div class="collapse-content">
             <div class="space-y-3">
@@ -438,7 +438,7 @@ const lastSessionSummary = computed(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <details class="collapse collapse-arrow md:collapse-open">
+        <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg">Leaderboards</summary>
           <div class="collapse-content">
             <LeaderboardTabs />
