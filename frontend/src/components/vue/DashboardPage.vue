@@ -65,6 +65,10 @@ const filteredAvgSessionTime = computed(() => {
   return filteredTotals.value.minutes / filteredSessions.value.length
 })
 
+const filteredAvgSessionTimeRounded = computed(() => {
+  return Math.round(filteredAvgSessionTime.value)
+})
+
 const filterCount = computed(() => {
   return store.filteredBoomers.length + store.filteredCategories.length
 })
@@ -216,14 +220,14 @@ const lastSessionSummary = computed(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TimeStatCard
             title="Avg Session Time"
-            :minutes="filteredAvgSessionTime"
+            :minutes="filteredAvgSessionTimeRounded"
             :cost="store.costPerMinute * filteredAvgSessionTime"
             :count="0"
             :costPrecision="2"
           />
           <TimeStatCard
             title="Avg Cost / Session"
-            :minutes="filteredAvgSessionTime"
+            :minutes="filteredAvgSessionTimeRounded"
             :cost="avgCostPerSession"
             :count="0"
             :costPrecision="2"
