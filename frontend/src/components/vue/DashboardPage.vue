@@ -184,149 +184,174 @@ const lastSessionSummary = computed(() => {
 
 <template>
   <div class="space-y-6">
-    <InsightsCard />
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body">
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title text-lg">Key Insights</summary>
+          <div class="collapse-content">
+            <InsightsCard />
+          </div>
+        </details>
+      </div>
+    </div>
 
     <div class="card bg-base-200 border border-primary shadow-lg">
-      <div class="card-body gap-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="card-title">Lifetime Damage</h2>
-          <div class="text-xs opacity-60">Last session: {{ lastSessionSummary }}</div>
-        </div>
-        <Totals />
+      <div class="card-body">
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title text-lg">Lifetime Damage</summary>
+          <div class="collapse-content">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="text-xs opacity-60">Last session: {{ lastSessionSummary }}</div>
+            </div>
+            <Totals />
+          </div>
+        </details>
       </div>
     </div>
 
     <div v-if="topBoomer || topCategory || store.peakDayThisMonth.day || mostFrequentCategory" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <h3 class="card-title text-base">Top Culprits</h3>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <div v-if="topBoomer" class="card bg-base-300 border border-base-100">
-            <div class="card-body p-4">
-              <div class="text-xs opacity-60">Top Boomer</div>
-              <div class="text-sm font-semibold">{{ topBoomer.boomer.name }}</div>
-              <div class="text-xs opacity-70">${{ topBoomer.cost.toFixed(2) }} total</div>
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title text-lg">Top Culprits</summary>
+          <div class="collapse-content">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div v-if="topBoomer" class="card bg-base-300 border border-base-100">
+                <div class="card-body p-4">
+                  <div class="text-xs opacity-60">Top Boomer</div>
+                  <div class="text-sm font-semibold">{{ topBoomer.boomer.name }}</div>
+                  <div class="text-xs opacity-70">${{ topBoomer.cost.toFixed(2) }} total</div>
+                </div>
+              </div>
+              <div v-if="topCategory" class="card bg-base-300 border border-base-100">
+                <div class="card-body p-4">
+                  <div class="text-xs opacity-60">Top Category</div>
+                  <div class="text-sm font-semibold">{{ topCategory.category.name }}</div>
+                  <div class="text-xs opacity-70">{{ topCategory.minutes }}m total</div>
+                </div>
+              </div>
+              <div v-if="store.peakDayThisMonth.day" class="card bg-base-300 border border-base-100">
+                <div class="card-body p-4">
+                  <div class="text-xs opacity-60">Peak Day This Month</div>
+                  <div class="text-sm font-semibold">{{ store.peakDayThisMonth.day }}</div>
+                  <div class="text-xs opacity-70">${{ store.peakDayThisMonth.cost.toFixed(2) }} total</div>
+                </div>
+              </div>
+              <div v-if="mostFrequentCategory" class="card bg-base-300 border border-base-100">
+                <div class="card-body p-4">
+                  <div class="text-xs opacity-60">Most Frequent Category</div>
+                  <div class="text-sm font-semibold">{{ mostFrequentCategory.category.name }}</div>
+                  <div class="text-xs opacity-70">{{ mostFrequentCategory.count }} sessions</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div v-if="topCategory" class="card bg-base-300 border border-base-100">
-            <div class="card-body p-4">
-              <div class="text-xs opacity-60">Top Category</div>
-              <div class="text-sm font-semibold">{{ topCategory.category.name }}</div>
-              <div class="text-xs opacity-70">{{ topCategory.minutes }}m total</div>
-            </div>
-          </div>
-          <div v-if="store.peakDayThisMonth.day" class="card bg-base-300 border border-base-100">
-            <div class="card-body p-4">
-              <div class="text-xs opacity-60">Peak Day This Month</div>
-              <div class="text-sm font-semibold">{{ store.peakDayThisMonth.day }}</div>
-              <div class="text-xs opacity-70">${{ store.peakDayThisMonth.cost.toFixed(2) }} total</div>
-            </div>
-          </div>
-          <div v-if="mostFrequentCategory" class="card bg-base-300 border border-base-100">
-            <div class="card-body p-4">
-              <div class="text-xs opacity-60">Most Frequent Category</div>
-              <div class="text-sm font-semibold">{{ mostFrequentCategory.category.name }}</div>
-              <div class="text-xs opacity-70">{{ mostFrequentCategory.count }} sessions</div>
-            </div>
-          </div>
-        </div>
+        </details>
       </div>
     </div>
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <h3 class="card-title font-mono">Averages</h3>
-        <div class="mt-2">
-          <div class="label">
-            <span class="label-text">Filter by Boomer</span>
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title font-mono text-lg">Averages</summary>
+          <div class="collapse-content">
+            <div class="mt-2">
+              <div class="label">
+                <span class="label-text">Filter by Boomer</span>
+              </div>
+              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+                <input
+                  class="btn btn-sm filter-reset"
+                  type="radio"
+                  name="avg-boomer"
+                  aria-label="All"
+                  :checked="averagesBoomerId === null"
+                  @change="averagesBoomerId = null"
+                />
+                <input
+                  v-for="boomer in store.boomers"
+                  :key="boomer.id"
+                  class="btn btn-sm"
+                  type="radio"
+                  name="avg-boomer"
+                  :aria-label="boomer.name"
+                  :checked="averagesBoomerId === boomer.id"
+                  @change="averagesBoomerId = boomer.id"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TimeStatCard
+                title="Avg Session Time"
+                :minutes="filteredAvgSessionTimeRounded"
+                :cost="store.costPerMinute * filteredAvgSessionTime"
+                :count="0"
+                :costPrecision="2"
+              />
+              <TimeStatCard
+                title="Avg Cost / Session"
+                :minutes="filteredAvgSessionTimeRounded"
+                :cost="avgCostPerSession"
+                :count="0"
+                :costPrecision="2"
+              />
+            </div>
           </div>
-          <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
-            <input
-              class="btn btn-sm filter-reset"
-              type="radio"
-              name="avg-boomer"
-              aria-label="All"
-              :checked="averagesBoomerId === null"
-              @change="averagesBoomerId = null"
-            />
-            <input
-              v-for="boomer in store.boomers"
-              :key="boomer.id"
-              class="btn btn-sm"
-              type="radio"
-              name="avg-boomer"
-              :aria-label="boomer.name"
-              :checked="averagesBoomerId === boomer.id"
-              @change="averagesBoomerId = boomer.id"
-            />
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TimeStatCard
-            title="Avg Session Time"
-            :minutes="filteredAvgSessionTimeRounded"
-            :cost="store.costPerMinute * filteredAvgSessionTime"
-            :count="0"
-            :costPrecision="2"
-          />
-          <TimeStatCard
-            title="Avg Cost / Session"
-            :minutes="filteredAvgSessionTimeRounded"
-            :cost="avgCostPerSession"
-            :count="0"
-            :costPrecision="2"
-          />
-        </div>
+        </details>
       </div>
     </div>
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <h3 class="card-title font-mono">Current Period Damage</h3>
-        <div class="mt-2">
-          <div class="label">
-            <span class="label-text">Filter by Boomer</span>
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title font-mono text-lg">Current Period Damage</summary>
+          <div class="collapse-content">
+            <div class="mt-2">
+              <div class="label">
+                <span class="label-text">Filter by Boomer</span>
+              </div>
+              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+                <input
+                  class="btn btn-sm filter-reset"
+                  type="radio"
+                  name="current-boomer"
+                  aria-label="All"
+                  :checked="currentPeriodBoomerId === null"
+                  @change="currentPeriodBoomerId = null"
+                />
+                <input
+                  v-for="boomer in store.boomers"
+                  :key="boomer.id"
+                  class="btn btn-sm"
+                  type="radio"
+                  name="current-boomer"
+                  :aria-label="boomer.name"
+                  :checked="currentPeriodBoomerId === boomer.id"
+                  @change="currentPeriodBoomerId = boomer.id"
+                />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <TimeStatCard
+                title="Today's Damage"
+                :minutes="currentTodayStats.minutes"
+                :cost="currentTodayStats.cost"
+                :count="currentTodayStats.count"
+              />
+              <TimeStatCard
+                title="This Week's Damage"
+                :minutes="currentWeekStats.minutes"
+                :cost="currentWeekStats.cost"
+                :count="currentWeekStats.count"
+              />
+              <TimeStatCard
+                title="This Month's Damage"
+                :minutes="currentMonthStats.minutes"
+                :cost="currentMonthStats.cost"
+                :count="currentMonthStats.count"
+              />
+            </div>
           </div>
-          <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
-            <input
-              class="btn btn-sm filter-reset"
-              type="radio"
-              name="current-boomer"
-              aria-label="All"
-              :checked="currentPeriodBoomerId === null"
-              @change="currentPeriodBoomerId = null"
-            />
-            <input
-              v-for="boomer in store.boomers"
-              :key="boomer.id"
-              class="btn btn-sm"
-              type="radio"
-              name="current-boomer"
-              :aria-label="boomer.name"
-              :checked="currentPeriodBoomerId === boomer.id"
-              @change="currentPeriodBoomerId = boomer.id"
-            />
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <TimeStatCard
-            title="Today's Damage"
-            :minutes="currentTodayStats.minutes"
-            :cost="currentTodayStats.cost"
-            :count="currentTodayStats.count"
-          />
-          <TimeStatCard
-            title="This Week's Damage"
-            :minutes="currentWeekStats.minutes"
-            :cost="currentWeekStats.cost"
-            :count="currentWeekStats.count"
-          />
-          <TimeStatCard
-            title="This Month's Damage"
-            :minutes="currentMonthStats.minutes"
-            :cost="currentMonthStats.cost"
-            :count="currentMonthStats.count"
-          />
-        </div>
+        </details>
       </div>
     </div>
 
@@ -387,28 +412,39 @@ const lastSessionSummary = computed(() => {
 
     <div v-if="recentSessions.length > 0" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <h3 class="card-title text-base">Recent Sessions</h3>
-        <div class="space-y-3">
-          <div
-            v-for="session in recentSessions"
-            :key="session.id"
-            class="flex flex-wrap items-center justify-between gap-2 bg-base-300 border border-base-100 rounded-lg p-3"
-          >
-            <div>
-              <div class="text-sm font-semibold">{{ session.boomerName }} - {{ session.categoryName }}</div>
-              <div class="text-xs opacity-70">{{ new Date(session.endedAt).toLocaleString() }}</div>
-            </div>
-            <div class="text-right">
-              <div class="font-mono font-semibold">${{ session.cost.toFixed(2) }}</div>
-              <div class="text-xs opacity-70">{{ session.minutes }}m</div>
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title text-lg">Recent Sessions</summary>
+          <div class="collapse-content">
+            <div class="space-y-3">
+              <div
+                v-for="session in recentSessions"
+                :key="session.id"
+                class="flex flex-wrap items-center justify-between gap-2 bg-base-300 border border-base-100 rounded-lg p-3"
+              >
+                <div>
+                  <div class="text-sm font-semibold">{{ session.boomerName }} - {{ session.categoryName }}</div>
+                  <div class="text-xs opacity-70">{{ new Date(session.endedAt).toLocaleString() }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="font-mono font-semibold">${{ session.cost.toFixed(2) }}</div>
+                  <div class="text-xs opacity-70">{{ session.minutes }}m</div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
     </div>
 
-    <div class="sticky top-4">
-      <LeaderboardTabs />
+    <div class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body">
+        <details class="collapse collapse-arrow md:collapse-open">
+          <summary class="collapse-title text-lg">Leaderboards</summary>
+          <div class="collapse-content">
+            <LeaderboardTabs />
+          </div>
+        </details>
+      </div>
     </div>
   </div>
 </template>
