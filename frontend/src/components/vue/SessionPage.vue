@@ -90,17 +90,12 @@ watch(
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div class="text-sm font-semibold">Setup</div>
-              <button
-                v-if="isMobile"
-                class="btn btn-xs btn-ghost"
-                @click="showSetup = !showSetup"
-              >
+              <button v-if="isMobile" class="btn btn-xs btn-ghost" @click="showSetup = !showSetup">
                 {{ showSetup ? 'Hide' : 'Show' }} Setup
               </button>
             </div>
 
             <div v-show="!isMobile || showSetup" class="space-y-4">
-              <RateInput />
               <BoomerSelect />
               <CategoryGrid />
               <p v-if="!hasSelection" class="text-xs text-warning">
