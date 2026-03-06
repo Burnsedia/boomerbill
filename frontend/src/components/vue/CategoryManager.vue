@@ -73,6 +73,7 @@ function getIcon(category: typeof store.categories[0]) {
           <button
             v-if="!category.isDefault"
             class="btn btn-ghost btn-sm btn-circle text-error"
+            :aria-label="`Remove ${category.name}`"
             @click="removeCategory(category.id)"
           >
             ✕

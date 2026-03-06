@@ -1,6 +1,13 @@
-<script setup>
+<script setup lang="ts">
+import { computed } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
+
 const store = useBoomerBill()
+
+const rateInput = computed({
+  get: () => store.rate,
+  set: (value: number) => store.setRate(value)
+})
 </script>
 
 <template>
@@ -9,7 +16,7 @@ const store = useBoomerBill()
       <span class="label-text">Hourly Rate</span>
     </label>
 
-    <input type="number" class="input input-bordered" v-model.number="store.rate" min="1" />
+    <input type="number" class="input input-bordered" v-model.number="rateInput" min="1" />
 
     <p class="text-xs opacity-60 mt-1">
       Default is average US developer rate.

@@ -73,9 +73,17 @@ function applyPreset(preset: 'all' | 'today' | 'week' | 'month') {
   store.dateRange.end = now
 }
 
+function toLocalDateInput(timestamp: number): string {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const startDate = computed({
   get() {
-    return store.dateRange.start ? new Date(store.dateRange.start).toISOString().slice(0, 10) : ''
+    return store.dateRange.start ? toLocalDateInput(store.dateRange.start) : ''
   },
   set(value: string) {
     datePreset.value = 'custom'
@@ -85,7 +93,7 @@ const startDate = computed({
 
 const endDate = computed({
   get() {
-    return store.dateRange.end ? new Date(store.dateRange.end).toISOString().slice(0, 10) : ''
+    return store.dateRange.end ? toLocalDateInput(store.dateRange.end) : ''
   },
   set(value: string) {
     datePreset.value = 'custom'

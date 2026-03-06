@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 
 const store = useBoomerBill()
 
 const boomerNames = ref<string[]>([...store.DEFAULT_BOOMERS])
 const newName = ref('')
+const firstInput = ref<HTMLInputElement | null>(null)
 
 function addName() {
   const trimmed = newName.value.trim()
@@ -38,14 +39,23 @@ function skip() {
   }
   store.setOnboarded(true)
 }
+
+onMounted(() => {
+  firstInput.value?.focus()
+})
 </script>
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-    <div class="card bg-base-200 border border-primary shadow-lg w-full max-w-2xl">
+    <div
+      class="card bg-base-200 border border-primary shadow-lg w-full max-w-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-title"
+    >
       <div class="card-body gap-4">
         <div>
-          <h2 class="card-title">Welcome to BoomerBill</h2>
+          <h2 id="onboarding-title" class="card-title">Welcome to BoomerBill</h2>
           <p class="text-sm opacity-70">
             Add the boomers you help most so you can start billing immediately.
           </p>
@@ -68,6 +78,7 @@ function skip() {
 
           <div class="flex flex-wrap gap-2">
             <input
+              ref="firstInput"
               v-model="newName"
               type="text"
               class="input input-bordered flex-1 min-w-[12rem]"

@@ -51,6 +51,7 @@ function removeBoomer(id: string) {
           </div>
           <button
             class="btn btn-ghost btn-sm btn-circle text-error"
+            :aria-label="`Remove ${boomer.name}`"
             @click="removeBoomer(boomer.id)"
           >
             ✕

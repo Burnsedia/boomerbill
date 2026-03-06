@@ -32,6 +32,19 @@ type AddSessionParams = {
   endedAt?: number
 }
 
+type PersistedBoomer = {
+  id: string
+  name: string
+  createdAt: number
+}
+
+type PersistedCategory = {
+  id: string
+  name: string
+  icon?: string
+  isDefault?: boolean
+}
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'wifi', name: 'WiFi Issues', icon: 'wifi', isDefault: true },
   { id: 'printer', name: 'Printer Problems', icon: 'printer', isDefault: true },
@@ -120,6 +133,12 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   function currentDurationMs(now = Date.now()) {
     if (!startTime.value) return 0
     return Math.max(0, now - startTime.value)
+  }
+
+  function setRate(value: number) {
+    if (!Number.isFinite(value)) return
+    rate.value = Math.max(1, value)
+    persist()
   }
 
   function start(now = Date.now()) {
@@ -260,11 +279,12 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const filteredSessions = computed(() => {
     return sessions.value.filter(s => {
       const start = dateRange.value.start
-      const end = dateRange.value.end ?? Date.now()
-      const inDateRange = !start || (s.startedAt >= start && s.endedAt <= end)
+      const end = dateRange.value.end
+      const afterStart = start === null || s.startedAt >= start
+      const beforeEnd = end === null || s.endedAt <= end
       const inBoomers = filteredBoomers.value.length === 0 || filteredBoomers.value.includes(s.boomerId)
       const inCategories = filteredCategories.value.length === 0 || filteredCategories.value.includes(s.categoryId)
-      return inDateRange && inBoomers && inCategories
+      return afterStart && beforeEnd && inBoomers && inCategories
     })
   })
 
@@ -477,16 +497,65 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   })
 
   const exportCSV = computed(() => {
+    const escapeCsv = (value: string) => {
+      const singleLine = value.replace(/\r?\n/g, ' ')
+      const formulaSafe = /^[=+\-@]/.test(singleLine) ? `'${singleLine}` : singleLine
+      return `"${formulaSafe.replace(/"/g, '""')}"`
+    }
+
     const rows = [
       'id,boomer,category,minutes,cost,startedAt,endedAt,note',
       ...sessions.value.map(s => {
         const boomer = boomers.value.find(b => b.id === s.boomerId)?.name || 'Unknown'
         const category = categories.value.find(c => c.id === s.categoryId)?.name || 'Unknown'
-        return `${s.id},"${boomer}","${category}",${s.minutes},${s.cost.toFixed(2)},${s.startedAt},${s.endedAt},"${s.note ?? ''}"`
+        return `${s.id},${escapeCsv(boomer)},${escapeCsv(category)},${s.minutes},${s.cost.toFixed(2)},${s.startedAt},${s.endedAt},${escapeCsv(s.note ?? '')}`
       })
     ]
     return rows.join('\n')
   })
+
+  function parseJsonArray<T>(raw: string | null): T[] {
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed as T[] : []
+    } catch {
+      return []
+    }
+  }
+
+  function normalizeBoomers(raw: PersistedBoomer[]): Boomer[] {
+    return raw
+      .filter(entry => (
+        entry &&
+        typeof entry.id === 'string' &&
+        typeof entry.name === 'string' &&
+        Number.isFinite(Number(entry.createdAt))
+      ))
+      .map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        createdAt: Number(entry.createdAt)
+      }))
+  }
+
+  function normalizeCategories(raw: PersistedCategory[]): Category[] {
+    const customCategories = raw
+      .filter(entry => (
+        entry &&
+        typeof entry.id === 'string' &&
+        typeof entry.name === 'string' &&
+        entry.isDefault !== true
+      ))
+      .map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        icon: typeof entry.icon === 'string' ? entry.icon : undefined,
+        isDefault: false
+      }))
+
+    return [...DEFAULT_CATEGORIES, ...customCategories]
+  }
 
   function normalizeSessions(raw: unknown[]): Session[] {
     const fallbackCategory = DEFAULT_CATEGORIES[0]?.id || 'general'
@@ -543,19 +612,25 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const lastCategoryId = localStorage.getItem('bb_last_category_id')
     const onboarded = localStorage.getItem('bb_onboarded')
 
-    if (r) rate.value = Number(r)
-    if (b) boomers.value = JSON.parse(b)
-    if (c) {
-      const savedCategories = JSON.parse(c) as Category[]
-      const customCategories = savedCategories.filter(category => !category.isDefault)
-      categories.value = [...DEFAULT_CATEGORIES, ...customCategories]
+    const parsedRate = Number(r)
+    if (r && Number.isFinite(parsedRate) && parsedRate > 0) {
+      rate.value = parsedRate
     }
-    if (s) {
-      const parsed = JSON.parse(s) as unknown[]
-      sessions.value = normalizeSessions(parsed)
+
+    boomers.value = normalizeBoomers(parseJsonArray<PersistedBoomer>(b))
+    categories.value = normalizeCategories(parseJsonArray<PersistedCategory>(c))
+    sessions.value = normalizeSessions(parseJsonArray<unknown>(s))
+
+    const parsedNextId = Number(n)
+    if (n && Number.isFinite(parsedNextId) && parsedNextId > 0) {
+      nextId.value = parsedNextId
     }
-    if (n) nextId.value = Number(n)
-    if (nb) nextBoomerId.value = Number(nb)
+
+    const parsedNextBoomerId = Number(nb)
+    if (nb && Number.isFinite(parsedNextBoomerId) && parsedNextBoomerId > 0) {
+      nextBoomerId.value = parsedNextBoomerId
+    }
+
     if (onboarded) hasOnboarded.value = onboarded === 'true'
 
     ensureLegacyBoomerIfNeeded(sessions.value)
@@ -611,6 +686,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
     currentDurationMs,
     severity,
+    setRate,
 
     totals,
     incidentCount,

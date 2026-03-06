@@ -2,6 +2,11 @@
 import { useBoomerBill } from './store/boomerbills'
 
 const store = useBoomerBill()
+
+function onChange(event: Event) {
+  const target = event.target as HTMLSelectElement
+  store.selectBoomer(target.value || null)
+}
 </script>
 
 <template>
@@ -11,11 +16,12 @@ const store = useBoomerBill()
     </label>
 
     <select
-      v-model="store.selectedBoomerId"
+      :value="store.selectedBoomerId ?? ''"
       class="select select-bordered w-full"
       :disabled="store.isRunning"
+      @change="onChange"
     >
-      <option :value="null">-- Choose a boomer --</option>
+      <option value="">-- Choose a boomer --</option>
       <option v-for="boomer in store.boomers" :key="boomer.id" :value="boomer.id">
         {{ boomer.name }}
       </option>
