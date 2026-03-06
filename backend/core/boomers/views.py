@@ -7,6 +7,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 # Create your views here.
 from boomers.models import Boomer, Category, Session
 from boomers.permissions import IsOwnerOrReadOnly 
+from .serializers import CategorySerializer, BoomerSerializer, SessionSerializer
 
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
