@@ -26,18 +26,21 @@ It’s a visibility app.
 ## Features
 
 ### Core
+
 - Start / stop time tracking sessions
 - Aggregate total minutes spent
 - Calculate money lost based on a configurable hourly rate
 - Persistent local storage
 
 ### Dashboard
+
 - Average time lost per day
 - Average time lost per week
 - Average time lost per year
 - Cost breakdowns alongside time
 
 ### UI
+
 - Simple card-based layout
 - Dark Synthwave theme (DaisyUI)
 - Mobile-friendly
@@ -95,6 +98,7 @@ All app state lives in a single Pinia store:
 src/components/vue/store/boomerbills.ts
 
 This includes:
+
 - Sessions
 - Totals
 - Averages
