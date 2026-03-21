@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from './store/auth'
 import { getApiBaseUrl } from './lib/api'
 
@@ -18,6 +18,30 @@ const isLoading = ref(false)
 const error = ref('')
 
 const apiBaseUrl = getApiBaseUrl()
+
+const currentUserRow = computed(() => {
+  if (!auth.username) return null
+  return rows.value.find(row => row.username === auth.username) || null
+})
+
+const nextRankRow = computed(() => {
+  if (!currentUserRow.value) return null
+  return rows.value.find(row => row.rank === currentUserRow.value!.rank - 1) || null
+})
+
+const rankProgressCopy = computed(() => {
+  if (!currentUserRow.value) {
+    return 'Sign in and log sessions to climb the public board.'
+  }
+
+  if (!nextRankRow.value) {
+    return 'You are at the top spot. Keep posting and stay ahead.'
+  }
+
+  const centsGap = Math.max(0, nextRankRow.value.total_cost - currentUserRow.value.total_cost)
+  const dollarsGap = (centsGap / 100).toFixed(2)
+  return `You are #${currentUserRow.value.rank}. Close $${dollarsGap} to pass @${nextRankRow.value.username}.`
+})
 
 function authHeaders() {
   if (!auth.token) return {}
@@ -65,6 +89,10 @@ onMounted(() => {
 
 <template>
   <div class="space-y-2">
+    <div class="alert border border-primary/40 bg-base-300 text-sm">
+      {{ rankProgressCopy }}
+    </div>
+
     <div v-if="isLoading" class="text-sm opacity-70">Loading public leaderboard...</div>
     <div v-else-if="error" class="text-sm text-error">{{ error }}</div>
     <div v-else-if="rows.length === 0" class="text-center py-8 text-opacity-60">

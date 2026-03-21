@@ -23,6 +23,13 @@ const currentView = ref<'session' | 'dashboard' | 'logging' | 'settings' | 'comm
 const showOnboarding = computed(() => !store.hasOnboarded)
 const isBooting = ref(true)
 const showAuthPanel = ref(false)
+const hasLocalData = computed(() => store.incidentCount > 0)
+const guestConversionCopy = computed(() => {
+  if (!hasLocalData.value) {
+    return 'Start in guest mode instantly, then create a free account when you want sync and community access.'
+  }
+  return `You already tracked ${store.incidentCount} sessions locally. Create a free account to sync everything across devices.`
+})
 const syncLabel = computed(() => {
   if (!auth.isAuthenticated) return ''
   if (store.syncStatus === 'syncing') return 'Syncing...'
@@ -121,9 +128,14 @@ onMounted(() => {
       />
 
       <div v-if="!auth.isAuthenticated" class="alert border border-primary/40 bg-base-200">
-        <span class="text-sm">
-          You're in local-only mode. Create an account to unlock sync and future online features.
-        </span>
+        <div class="w-full flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm">{{ guestConversionCopy }}</span>
+          <button class="btn btn-xs btn-primary" @click="showAuthPanel = true">Create free account</button>
+        </div>
+      </div>
+
+      <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm">
+        Sync unlock: backup your data, use community follow/replies, and keep history across phones.
       </div>
 
       <MobileAppDrive />
