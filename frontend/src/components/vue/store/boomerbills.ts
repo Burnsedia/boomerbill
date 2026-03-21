@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { getApiBaseUrl } from '../lib/api'
 
 export type Boomer = {
   id: string
@@ -45,6 +46,34 @@ type PersistedCategory = {
   isDefault?: boolean
 }
 
+type SyncPayload = {
+  boomers: Array<{ id: string; name: string; createdAt?: number }>
+  categories: Array<{ id: string; name: string; isDefault?: boolean; icon?: string }>
+  sessions: Array<{
+    boomerId: string
+    categoryId: string
+    minutes: number
+    cost: number
+    startedAt: number
+    endedAt: number
+    note?: string
+  }>
+}
+
+type PullPayload = {
+  boomers?: Array<{ name?: string }>
+  categories?: Array<{ id?: string; name?: string; isDefault?: boolean }>
+  sessions?: Array<{
+    boomerName?: string
+    categoryId?: string
+    minutes?: number
+    cost?: number
+    startedAt?: number
+    endedAt?: number
+    note?: string
+  }>
+}
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'wifi', name: 'WiFi Issues', icon: 'wifi', isDefault: true },
   { id: 'printer', name: 'Printer Problems', icon: 'printer', isDefault: true },
@@ -72,6 +101,17 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const filteredBoomers = ref<string[]>([])
   const filteredCategories = ref<string[]>([])
   const hasOnboarded = ref<boolean>(false)
+  const syncStatus = ref<'idle' | 'syncing' | 'synced' | 'error'>('idle')
+  const lastSyncedAt = ref<number | null>(null)
+  const syncToken = ref<string | null>(null)
+
+  let autoSyncTimer: ReturnType<typeof setTimeout> | null = null
+  let autoSyncInFlight = false
+  let pendingAutoSync = false
+  let suspendAutoSync = false
+  let lastSyncedFingerprint = ''
+
+  const AUTO_SYNC_DEBOUNCE_MS = 1800
 
   const isRunning = computed(() => startTime.value !== null)
 
@@ -655,6 +695,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     localStorage.setItem('bb_categories', JSON.stringify(categories.value))
     localStorage.setItem('bb_next_id', String(nextId.value))
     localStorage.setItem('bb_next_boomer_id', String(nextBoomerId.value))
+    scheduleAutoSync()
   }
 
   function setOnboarded(value: boolean) {
@@ -662,6 +703,197 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('bb_onboarded', String(value))
     }
+  }
+
+  function getSyncPayload() {
+    return {
+      boomers: boomers.value,
+      categories: categories.value,
+      sessions: sessions.value
+    } satisfies SyncPayload
+  }
+
+  function getSyncFingerprint() {
+    return JSON.stringify(getSyncPayload())
+  }
+
+  async function runAutoSync() {
+    if (!syncToken.value || suspendAutoSync) return
+
+    if (autoSyncInFlight) {
+      pendingAutoSync = true
+      return
+    }
+
+    const fingerprint = getSyncFingerprint()
+    if (fingerprint === lastSyncedFingerprint) return
+
+    autoSyncInFlight = true
+    syncStatus.value = 'syncing'
+    try {
+      await syncToCloud(syncToken.value)
+      lastSyncedFingerprint = fingerprint
+      lastSyncedAt.value = Date.now()
+      syncStatus.value = 'synced'
+    } catch {
+      syncStatus.value = 'error'
+    } finally {
+      autoSyncInFlight = false
+      if (pendingAutoSync) {
+        pendingAutoSync = false
+        void runAutoSync()
+      }
+    }
+  }
+
+  function scheduleAutoSync() {
+    if (!syncToken.value || suspendAutoSync || typeof window === 'undefined') return
+    if (autoSyncTimer) {
+      clearTimeout(autoSyncTimer)
+    }
+    autoSyncTimer = setTimeout(() => {
+      autoSyncTimer = null
+      void runAutoSync()
+    }, AUTO_SYNC_DEBOUNCE_MS)
+  }
+
+  function setSyncToken(token: string | null) {
+    syncToken.value = token
+    if (!token) {
+      if (autoSyncTimer) {
+        clearTimeout(autoSyncTimer)
+        autoSyncTimer = null
+      }
+      autoSyncInFlight = false
+      pendingAutoSync = false
+      lastSyncedFingerprint = ''
+      syncStatus.value = 'idle'
+      lastSyncedAt.value = null
+      return
+    }
+
+    scheduleAutoSync()
+  }
+
+  function ensureBoomerByName(name: string): string {
+    const trimmed = name.trim()
+    const existing = boomers.value.find(b => b.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) return existing.id
+
+    const id = `boomer-${nextBoomerId.value++}`
+    boomers.value.push({ id, name: trimmed, createdAt: Date.now() })
+    return id
+  }
+
+  function mergeRemotePayload(payload: PullPayload) {
+    const remoteBoomers = Array.isArray(payload.boomers) ? payload.boomers : []
+    const remoteCategories = Array.isArray(payload.categories) ? payload.categories : []
+    const remoteSessions = Array.isArray(payload.sessions) ? payload.sessions : []
+
+    for (const boomer of remoteBoomers) {
+      const name = (boomer?.name || '').trim()
+      if (!name) continue
+      ensureBoomerByName(name)
+    }
+
+    for (const category of remoteCategories) {
+      const id = (category?.id || '').trim()
+      const name = (category?.name || '').trim()
+      if (!id || !name) continue
+      const existing = categories.value.find(c => c.id === id)
+      if (existing) {
+        if (!existing.name && name) existing.name = name
+        continue
+      }
+      categories.value.push({
+        id,
+        name,
+        isDefault: Boolean(category?.isDefault)
+      })
+    }
+
+    const existingKeys = new Set(
+      sessions.value.map(session =>
+        [
+          session.boomerId,
+          session.categoryId,
+          session.minutes,
+          session.startedAt,
+          session.endedAt,
+          session.note || ''
+        ].join('|')
+      )
+    )
+
+    for (const remote of remoteSessions) {
+      const boomerName = (remote?.boomerName || '').trim()
+      const categoryId = (remote?.categoryId || '').trim()
+      if (!boomerName || !categoryId) continue
+
+      const boomerId = ensureBoomerByName(boomerName)
+      const minutes = Number(remote?.minutes || 0)
+      const cost = Number(remote?.cost || 0)
+      const startedAt = Number(remote?.startedAt || 0)
+      const endedAt = Number(remote?.endedAt || 0)
+      const note = remote?.note || ''
+
+      if (!Number.isFinite(minutes) || !Number.isFinite(cost)) continue
+      if (!Number.isFinite(startedAt) || !Number.isFinite(endedAt) || endedAt <= startedAt) continue
+
+      const key = [boomerId, categoryId, minutes, startedAt, endedAt, note].join('|')
+      if (existingKeys.has(key)) continue
+
+      sessions.value.push({
+        id: nextId.value++,
+        boomerId,
+        categoryId,
+        minutes,
+        cost,
+        startedAt,
+        endedAt,
+        note
+      })
+      existingKeys.add(key)
+    }
+
+    persist()
+  }
+
+  async function syncFromCloud(token: string) {
+    const response = await fetch(`${getApiBaseUrl()}/api/sync/pull/`, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Could not pull cloud data')
+    }
+
+    const payload = await response.json() as PullPayload
+    suspendAutoSync = true
+    try {
+      mergeRemotePayload(payload)
+    } finally {
+      suspendAutoSync = false
+    }
+  }
+
+  async function syncToCloud(token: string) {
+    const response = await fetch(`${getApiBaseUrl()}/api/sync/push/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${token}`
+      },
+      body: JSON.stringify(getSyncPayload())
+    })
+
+    if (!response.ok) {
+      throw new Error('Sync failed')
+    }
+
+    return await response.json() as { created?: number; skipped?: number; total?: number }
   }
 
   return {
@@ -678,6 +910,8 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     filteredBoomers,
     filteredCategories,
     hasOnboarded,
+    syncStatus,
+    lastSyncedAt,
 
     isRunning,
     selectedBoomer,
@@ -725,6 +959,10 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     removeCategory,
     selectCategory,
     setOnboarded,
+    setSyncToken,
+    getSyncPayload,
+    syncFromCloud,
+    syncToCloud,
     load,
     persist
   }

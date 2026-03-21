@@ -3,13 +3,15 @@ import { ref } from 'vue'
 import SessionLeaderboard from './SessionLeaderboard.vue'
 import BoomerLeaderboard from './BoomerLeaderboard.vue'
 import CategoryLeaderboard from './CategoryLeaderboard.vue'
+import PublicUserLeaderboard from './PublicUserLeaderboard.vue'
 
-const activeTab = ref<'sessions' | 'boomers' | 'categories'>('boomers')
+const activeTab = ref<'sessions' | 'boomers' | 'categories' | 'public'>('boomers')
 
 const tabs = [
   { id: 'boomers' as const, label: 'By Boomer' },
   { id: 'categories' as const, label: 'By Category' },
-  { id: 'sessions' as const, label: 'All Sessions' }
+  { id: 'sessions' as const, label: 'All Sessions' },
+  { id: 'public' as const, label: 'Public Users' }
 ]
 </script>
 
@@ -33,7 +35,8 @@ const tabs = [
       <div class="mt-4">
         <SessionLeaderboard v-if="activeTab === 'sessions'" />
         <BoomerLeaderboard v-else-if="activeTab === 'boomers'" />
-        <CategoryLeaderboard v-else />
+        <CategoryLeaderboard v-else-if="activeTab === 'categories'" />
+        <PublicUserLeaderboard v-else />
       </div>
     </div>
   </div>
