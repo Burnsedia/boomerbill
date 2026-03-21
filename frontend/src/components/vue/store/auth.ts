@@ -29,6 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   const boomerStore = useBoomerBill()
   const token = ref<string | null>(null)
   const username = ref<string | null>(null)
+  const email = ref<string | null>(null)
   const hasPaidAccess = ref(false)
   const apiBaseUrl = getApiBaseUrl()
 
@@ -63,6 +64,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     const payload = await response.json() as MeResponse
     username.value = payload.username || payload.email || null
+    email.value = payload.email || null
+  }
+
+  async function refreshProfile() {
+    await fetchMe()
   }
 
   async function login(params: LoginParams) {
@@ -97,6 +103,7 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchMe()
     } catch {
       username.value = null
+      email.value = null
     }
 
     if (token.value) {
@@ -203,6 +210,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     token.value = null
     username.value = null
+    email.value = null
     persistToken(null)
     boomerStore.setSyncToken(null)
   }
@@ -223,6 +231,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       token.value = null
       username.value = null
+      email.value = null
       persistToken(null)
       boomerStore.setSyncToken(null)
     }
@@ -231,12 +240,14 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     username,
+    email,
     hasPaidAccess,
     isAuthenticated,
     canUseRemote,
     login,
     register,
     requestPasswordReset,
+    refreshProfile,
     resetPasswordConfirm,
     logout,
     hydrate

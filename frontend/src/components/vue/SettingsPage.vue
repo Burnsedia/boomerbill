@@ -12,6 +12,9 @@ const store = useBoomerBill()
 const isSyncing = ref(false)
 const syncMessage = ref('')
 const syncError = ref('')
+const isSendingRecovery = ref(false)
+const recoveryMessage = ref('')
+const recoveryError = ref('')
 
 async function syncNow() {
   if (!auth.canUseRemote || isSyncing.value || !auth.token) return
@@ -30,6 +33,32 @@ async function syncNow() {
     syncError.value = error instanceof Error ? error.message : 'Sync failed'
   } finally {
     isSyncing.value = false
+  }
+}
+
+async function sendRecoveryEmail() {
+  if (!auth.isAuthenticated || isSendingRecovery.value) return
+
+  isSendingRecovery.value = true
+  recoveryMessage.value = ''
+  recoveryError.value = ''
+
+  try {
+    if (!auth.email) {
+      await auth.refreshProfile()
+    }
+
+    if (!auth.email) {
+      throw new Error('No recovery email found on your account yet.')
+    }
+
+    await auth.requestPasswordReset(auth.email)
+    recoveryMessage.value = `Recovery email sent to ${auth.email}. Check your inbox.`
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not send recovery email.'
+    recoveryError.value = message
+  } finally {
+    isSendingRecovery.value = false
   }
 }
 </script>
@@ -65,6 +94,22 @@ async function syncNow() {
         <p v-if="!auth.canUseRemote" class="text-xs opacity-60">Create an account to unlock sync.</p>
         <p v-if="syncMessage" class="text-xs text-success">{{ syncMessage }}</p>
         <p v-if="syncError" class="text-xs text-error">{{ syncError }}</p>
+      </div>
+    </div>
+
+    <div v-if="auth.isAuthenticated" class="card bg-base-200 border border-primary shadow-lg">
+      <div class="card-body gap-3">
+        <h3 class="card-title text-base">Account Recovery</h3>
+        <p class="text-sm opacity-70">
+          Use password recovery anytime if you lose access to your account.
+        </p>
+        <p class="text-xs opacity-60">Signed in as @{{ auth.username || 'user' }}</p>
+        <p class="text-xs opacity-60">Recovery email: {{ auth.email || 'Not set' }}</p>
+        <button class="btn btn-sm btn-secondary w-fit" :disabled="isSendingRecovery" @click="sendRecoveryEmail">
+          {{ isSendingRecovery ? 'Sending recovery email...' : 'Send password recovery email' }}
+        </button>
+        <p v-if="recoveryMessage" class="text-xs text-success">{{ recoveryMessage }}</p>
+        <p v-if="recoveryError" class="text-xs text-error">{{ recoveryError }}</p>
       </div>
     </div>
 
