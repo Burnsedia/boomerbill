@@ -4,6 +4,11 @@ import AppVue from '../components/vue/App.vue'
 ---
 
 <Layout>
+  <form name="mobile-app-signup" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input type="email" name="email" />
+    <input type="text" name="platform" />
+    <input type="text" name="bot-field" />
+  </form>
   <div class="relative z-10 pointer-events-auto w-full">
     <AppVue client:load />
   </div>
