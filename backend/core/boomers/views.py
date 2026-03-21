@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+import uuid
 
+from django.db import models
 from django.db.models import Avg, Count, Max, Sum, Value
 from django.db.models.functions import Coalesce
-from rest_framework import permissions
+from rest_framework.decorators import action
+from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -15,7 +18,95 @@ from .serializers import CategorySerializer, BoomerSerializer, SessionSerializer
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        user = self.request.user
+        base = Category.objects.all()
+        if not user.is_authenticated:
+            return base.filter(is_default=True)
+        return base.filter(
+            models.Q(is_default=True) | models.Q(owner=user) | models.Q(is_shared=True)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        name = serializer.validated_data["name"]
+        normalized = " ".join(name.lower().split())
+        existing = Category.objects.filter(
+            owner=user, normalized_name=normalized
+        ).first()
+        if existing:
+            raise serializers.ValidationError(
+                {"name": "Category with this name already exists for your account."}
+            )
+        serializer.save(owner=user, is_default=False)
+
+    @action(
+        detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def mine(self, request):
+        queryset = Category.objects.filter(
+            models.Q(is_default=True) | models.Q(owner=request.user)
+        ).order_by("name")
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    def shared(self, request):
+        queryset = Category.objects.filter(is_shared=True).order_by("name")
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def share(self, request, pk=None):
+        category = self.get_object()
+        if category.owner_id != request.user.id:
+            return Response(
+                {"detail": "Only the owner can share this category."}, status=403
+            )
+        category.is_shared = True
+        category.save(update_fields=["is_shared", "normalized_name", "name"])
+        return Response(self.get_serializer(category).data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def unshare(self, request, pk=None):
+        category = self.get_object()
+        if category.owner_id != request.user.id:
+            return Response(
+                {"detail": "Only the owner can unshare this category."}, status=403
+            )
+        category.is_shared = False
+        category.save(update_fields=["is_shared", "normalized_name", "name"])
+        return Response(self.get_serializer(category).data)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def import_shared(self, request, pk=None):
+        source = self.get_object()
+        if not source.is_shared and not source.is_default:
+            return Response({"detail": "Category is not shared."}, status=400)
+
+        existing = Category.objects.filter(
+            owner=request.user,
+            normalized_name=source.normalized_name,
+        ).first()
+        if existing:
+            return Response(self.get_serializer(existing).data)
+
+        imported = Category.objects.create(
+            id=f"category-{uuid.uuid4().hex[:12]}",
+            name=source.name,
+            is_default=False,
+            owner=request.user,
+            is_shared=False,
+        )
+        return Response(self.get_serializer(imported).data, status=201)
 
 
 class BoomerViewSet(ModelViewSet):
@@ -68,10 +159,46 @@ class SyncPushView(APIView):
                 category_id = category.get("id")
                 category_name = (category.get("name") or "").strip()
                 if category_id and category_name:
+                    normalized_name = " ".join(category_name.lower().split())
                     category_by_id[str(category_id)] = {
+                        "id": str(category_id),
                         "name": category_name,
+                        "normalized_name": normalized_name,
                         "is_default": bool(category.get("isDefault", False)),
+                        "is_shared": bool(category.get("isShared", False)),
                     }
+
+        for category in category_by_id.values():
+            if category["is_default"]:
+                Category.objects.get_or_create(
+                    normalized_name=category["normalized_name"],
+                    owner=None,
+                    defaults={
+                        "id": f"default-{uuid.uuid4().hex[:10]}",
+                        "name": category["name"],
+                        "is_default": True,
+                        "is_shared": True,
+                    },
+                )
+                continue
+
+            existing_owned = Category.objects.filter(
+                owner=request.user,
+                normalized_name=category["normalized_name"],
+            ).first()
+            if existing_owned:
+                if existing_owned.name != category["name"]:
+                    existing_owned.name = category["name"]
+                    existing_owned.save(update_fields=["name", "normalized_name"])
+                continue
+
+            Category.objects.create(
+                id=str(category["id"])[:100],
+                name=category["name"],
+                is_default=False,
+                owner=request.user,
+                is_shared=category["is_shared"],
+            )
 
         created = 0
         skipped = 0
@@ -85,6 +212,15 @@ class SyncPushView(APIView):
             category_ref = str(record.get("categoryId", ""))
             boomer_name = boomer_name_by_id.get(boomer_ref)
             category_payload = category_by_id.get(category_ref)
+            if not category_payload and category_ref:
+                existing_category = Category.objects.filter(id=category_ref).first()
+                if existing_category:
+                    category_payload = {
+                        "name": existing_category.name,
+                        "normalized_name": existing_category.normalized_name,
+                        "is_default": existing_category.is_default,
+                        "is_shared": existing_category.is_shared,
+                    }
 
             if not boomer_name or not category_payload:
                 skipped += 1
@@ -93,13 +229,23 @@ class SyncPushView(APIView):
             boomer, _ = Boomer.objects.get_or_create(
                 name=boomer_name, defaults={"cost": 0}
             )
-            category, _ = Category.objects.get_or_create(
-                id=category_ref,
-                defaults={
-                    "name": category_payload["name"],
-                    "is_default": category_payload["is_default"],
-                },
-            )
+            category = Category.objects.filter(
+                owner=request.user,
+                normalized_name=category_payload["normalized_name"],
+            ).first()
+            if not category:
+                category = Category.objects.filter(
+                    owner=None,
+                    normalized_name=category_payload["normalized_name"],
+                ).first()
+            if not category:
+                category = Category.objects.create(
+                    id=f"category-{uuid.uuid4().hex[:12]}",
+                    name=category_payload["name"],
+                    is_default=bool(category_payload["is_default"]),
+                    owner=None if category_payload["is_default"] else request.user,
+                    is_shared=bool(category_payload.get("is_shared", False)),
+                )
 
             started_at = record.get("startedAt")
             ended_at = record.get("endedAt")
@@ -164,8 +310,19 @@ class SyncPullView(APIView):
                 if session.boomer and session.boomer.name
             }
         )
-        category_ids = {session.category_id for session in user_sessions}
-        categories = list(Category.objects.filter(id__in=category_ids).order_by("name"))
+        categories = list(
+            Category.objects.filter(
+                models.Q(is_default=True) | models.Q(owner=request.user)
+            )
+            .order_by("name")
+            .distinct()
+        )
+        shared_categories = list(
+            Category.objects.filter(is_shared=True)
+            .exclude(owner=request.user)
+            .order_by("name")
+            .distinct()
+        )
 
         payload = {
             "boomers": [{"name": name} for name in boomer_names],
@@ -174,6 +331,7 @@ class SyncPullView(APIView):
                     "id": category.id,
                     "name": category.name,
                     "isDefault": category.is_default,
+                    "isShared": category.is_shared,
                 }
                 for category in categories
             ],
@@ -188,6 +346,15 @@ class SyncPullView(APIView):
                     "note": session.note,
                 }
                 for session in user_sessions
+            ],
+            "sharedCategories": [
+                {
+                    "id": category.id,
+                    "name": category.name,
+                    "isDefault": category.is_default,
+                    "isShared": category.is_shared,
+                }
+                for category in shared_categories
             ],
         }
         return Response(payload)

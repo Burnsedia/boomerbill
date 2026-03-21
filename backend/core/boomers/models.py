@@ -18,9 +18,32 @@ class Category(models.Model):
     id = models.CharField(max_length=100, primary_key=True)
     name = models.CharField(max_length=255)
     is_default = models.BooleanField(default=False)
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="owned_categories",
+        null=True,
+        blank=True,
+    )
+    is_shared = models.BooleanField(default=False)
+    normalized_name = models.CharField(max_length=255, db_index=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "normalized_name"],
+                condition=models.Q(owner__isnull=False),
+                name="unique_owner_normalized_category",
+            )
+        ]
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        self.normalized_name = " ".join(self.name.lower().split())
+        super().save(*args, **kwargs)
 
 
 class Session(models.Model):
