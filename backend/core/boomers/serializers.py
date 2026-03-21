@@ -10,9 +10,26 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class BoomerSerializer(serializers.ModelSerializer):
+    total_sessions = serializers.IntegerField(read_only=True)
+    total_minutes = serializers.IntegerField(read_only=True)
+    total_cost = serializers.IntegerField(read_only=True)
+    avg_minutes = serializers.FloatField(read_only=True)
+    avg_cost = serializers.FloatField(read_only=True)
+    last_session_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
     class Meta:
         model = Boomer
-        fields = "__all__"
+        fields = (
+            "id",
+            "name",
+            "cost",
+            "total_sessions",
+            "total_minutes",
+            "total_cost",
+            "avg_minutes",
+            "avg_cost",
+            "last_session_at",
+        )
 
 
 class SessionSerializer(serializers.ModelSerializer):
