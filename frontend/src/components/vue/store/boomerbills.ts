@@ -13,6 +13,7 @@ export type Category = {
   name: string
   icon?: string
   isDefault: boolean
+  isShared?: boolean
 }
 
 export type Session = {
@@ -44,11 +45,12 @@ type PersistedCategory = {
   name: string
   icon?: string
   isDefault?: boolean
+  isShared?: boolean
 }
 
 type SyncPayload = {
   boomers: Array<{ id: string; name: string; createdAt?: number }>
-  categories: Array<{ id: string; name: string; isDefault?: boolean; icon?: string }>
+  categories: Array<{ id: string; name: string; isDefault?: boolean; isShared?: boolean; icon?: string }>
   sessions: Array<{
     boomerId: string
     categoryId: string
@@ -62,7 +64,8 @@ type SyncPayload = {
 
 type PullPayload = {
   boomers?: Array<{ name?: string }>
-  categories?: Array<{ id?: string; name?: string; isDefault?: boolean }>
+  categories?: Array<{ id?: string; name?: string; isDefault?: boolean; isShared?: boolean }>
+  sharedCategories?: Array<{ id?: string; name?: string; isDefault?: boolean; isShared?: boolean }>
   sessions?: Array<{
     boomerName?: string
     categoryId?: string
@@ -92,6 +95,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   const sessions = ref<Session[]>([])
   const boomers = ref<Boomer[]>([])
   const categories = ref<Category[]>([...DEFAULT_CATEGORIES])
+  const sharedCategories = ref<Category[]>([])
   const startTime = ref<number | null>(null)
   const selectedBoomerId = ref<string | null>(null)
   const selectedCategoryId = ref<string | null>(null)
@@ -273,7 +277,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const trimmed = name.trim()
     if (!trimmed) return
     const id = `category-${Date.now()}`
-    categories.value.push({ id, name: trimmed, isDefault: false })
+    categories.value.push({ id, name: trimmed, isDefault: false, isShared: false })
     persist()
     return id
   }
@@ -591,10 +595,27 @@ export const useBoomerBill = defineStore('boomerbills', () => {
         id: entry.id,
         name: entry.name,
         icon: typeof entry.icon === 'string' ? entry.icon : undefined,
-        isDefault: false
+        isDefault: false,
+        isShared: Boolean(entry.isShared)
       }))
 
     return [...DEFAULT_CATEGORIES, ...customCategories]
+  }
+
+  function normalizeSharedCategories(raw: PersistedCategory[]): Category[] {
+    return raw
+      .filter(entry => (
+        entry &&
+        typeof entry.id === 'string' &&
+        typeof entry.name === 'string'
+      ))
+      .map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        icon: typeof entry.icon === 'string' ? entry.icon : undefined,
+        isDefault: Boolean(entry.isDefault),
+        isShared: true
+      }))
   }
 
   function normalizeSessions(raw: unknown[]): Session[] {
@@ -648,6 +669,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const c = localStorage.getItem('bb_categories')
     const n = localStorage.getItem('bb_next_id')
     const nb = localStorage.getItem('bb_next_boomer_id')
+    const sc = localStorage.getItem('bb_shared_categories')
     const lastBoomerId = localStorage.getItem('bb_last_boomer_id')
     const lastCategoryId = localStorage.getItem('bb_last_category_id')
     const onboarded = localStorage.getItem('bb_onboarded')
@@ -659,6 +681,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
     boomers.value = normalizeBoomers(parseJsonArray<PersistedBoomer>(b))
     categories.value = normalizeCategories(parseJsonArray<PersistedCategory>(c))
+    sharedCategories.value = normalizeSharedCategories(parseJsonArray<PersistedCategory>(sc))
     sessions.value = normalizeSessions(parseJsonArray<unknown>(s))
 
     const parsedNextId = Number(n)
@@ -693,6 +716,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     localStorage.setItem('bb_sessions', JSON.stringify(sessions.value))
     localStorage.setItem('bb_boomers', JSON.stringify(boomers.value))
     localStorage.setItem('bb_categories', JSON.stringify(categories.value))
+    localStorage.setItem('bb_shared_categories', JSON.stringify(sharedCategories.value))
     localStorage.setItem('bb_next_id', String(nextId.value))
     localStorage.setItem('bb_next_boomer_id', String(nextBoomerId.value))
     scheduleAutoSync()
@@ -785,9 +809,34 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     return id
   }
 
+  function normalizeCategoryName(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, ' ')
+  }
+
+  function replaceCategoryId(oldId: string, newId: string) {
+    if (!oldId || !newId || oldId === newId) return
+
+    sessions.value = sessions.value.map(session => (
+      session.categoryId === oldId
+        ? { ...session, categoryId: newId }
+        : session
+    ))
+
+    if (selectedCategoryId.value === oldId) {
+      selectedCategoryId.value = newId
+    }
+    if (typeof window !== 'undefined') {
+      const lastCategory = localStorage.getItem('bb_last_category_id')
+      if (lastCategory === oldId) {
+        localStorage.setItem('bb_last_category_id', newId)
+      }
+    }
+  }
+
   function mergeRemotePayload(payload: PullPayload) {
     const remoteBoomers = Array.isArray(payload.boomers) ? payload.boomers : []
     const remoteCategories = Array.isArray(payload.categories) ? payload.categories : []
+    const remoteSharedCategories = Array.isArray(payload.sharedCategories) ? payload.sharedCategories : []
     const remoteSessions = Array.isArray(payload.sessions) ? payload.sessions : []
 
     for (const boomer of remoteBoomers) {
@@ -803,14 +852,45 @@ export const useBoomerBill = defineStore('boomerbills', () => {
       const existing = categories.value.find(c => c.id === id)
       if (existing) {
         if (!existing.name && name) existing.name = name
+        existing.isShared = Boolean(category?.isShared)
         continue
       }
+
+      const normalizedName = normalizeCategoryName(name)
+      const byName = categories.value.find(c => (
+        !c.isDefault && normalizeCategoryName(c.name) === normalizedName
+      ))
+      if (byName) {
+        const oldId = byName.id
+        byName.id = id
+        byName.name = name
+        byName.isDefault = Boolean(category?.isDefault)
+        byName.isShared = Boolean(category?.isShared)
+        replaceCategoryId(oldId, id)
+        continue
+      }
+
       categories.value.push({
         id,
         name,
-        isDefault: Boolean(category?.isDefault)
+        isDefault: Boolean(category?.isDefault),
+        isShared: Boolean(category?.isShared)
       })
     }
+
+    sharedCategories.value = remoteSharedCategories
+      .map(category => {
+        const id = (category?.id || '').trim()
+        const name = (category?.name || '').trim()
+        if (!id || !name) return null
+        return {
+          id,
+          name,
+          isDefault: Boolean(category?.isDefault),
+          isShared: true
+        }
+      })
+      .filter((item): item is Category => item !== null)
 
     const existingKeys = new Set(
       sessions.value.map(session =>
@@ -896,11 +976,89 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     return await response.json() as { created?: number; skipped?: number; total?: number }
   }
 
+  async function shareCategory(token: string, categoryId: string) {
+    let response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/share/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    if (response.status === 404) {
+      await syncToCloud(token)
+      await syncFromCloud(token)
+      const current = categories.value.find(item => item.id === categoryId)
+      if (current) {
+        const normalized = normalizeCategoryName(current.name)
+        const remote = categories.value.find(item => normalizeCategoryName(item.name) === normalized)
+        if (remote) {
+          response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(remote.id)}/share/`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Token ${token}`
+            }
+          })
+        }
+      }
+    }
+    if (!response.ok) {
+      throw new Error('Could not share category')
+    }
+    const payload = await response.json() as { id: string; is_shared?: boolean }
+    const category = categories.value.find(item => item.id === payload.id)
+    if (category) {
+      category.isShared = true
+    }
+    persist()
+  }
+
+  async function unshareCategory(token: string, categoryId: string) {
+    const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/unshare/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error('Could not unshare category')
+    }
+    const payload = await response.json() as { id: string; is_shared?: boolean }
+    const category = categories.value.find(item => item.id === payload.id)
+    if (category) {
+      category.isShared = false
+    }
+    persist()
+  }
+
+  async function importSharedCategory(token: string, categoryId: string) {
+    const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/import_shared/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error('Could not import shared category')
+    }
+
+    const payload = await response.json() as { id: string; name: string; is_default?: boolean; is_shared?: boolean }
+    const exists = categories.value.find(item => item.id === payload.id)
+    if (!exists) {
+      categories.value.push({
+        id: payload.id,
+        name: payload.name,
+        isDefault: Boolean(payload.is_default),
+        isShared: Boolean(payload.is_shared)
+      })
+    }
+    persist()
+  }
+
   return {
     rate,
     sessions,
     boomers,
     categories,
+    sharedCategories,
     startTime,
     selectedBoomerId,
     selectedCategoryId,
@@ -963,6 +1121,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     getSyncPayload,
     syncFromCloud,
     syncToCloud,
+    shareCategory,
+    unshareCategory,
+    importSharedCategory,
     load,
     persist
   }

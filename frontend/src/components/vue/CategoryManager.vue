@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
+import { useAuthStore } from './store/auth'
 
 const store = useBoomerBill()
+const auth = useAuthStore()
 const newCategoryName = ref('')
+const actionError = ref('')
 
 function addCategory() {
   if (!newCategoryName.value.trim()) return
@@ -18,6 +21,45 @@ function removeCategory(id: string) {
     } catch (err) {
       alert(err)
     }
+  }
+}
+
+async function shareCategory(id: string) {
+  if (!auth.token) {
+    actionError.value = 'Sign in to share categories.'
+    return
+  }
+  actionError.value = ''
+  try {
+    await store.shareCategory(auth.token, id)
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : 'Could not share category.'
+  }
+}
+
+async function unshareCategory(id: string) {
+  if (!auth.token) {
+    actionError.value = 'Sign in to update sharing.'
+    return
+  }
+  actionError.value = ''
+  try {
+    await store.unshareCategory(auth.token, id)
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : 'Could not unshare category.'
+  }
+}
+
+async function importSharedCategory(id: string) {
+  if (!auth.token) {
+    actionError.value = 'Sign in to import shared categories.'
+    return
+  }
+  actionError.value = ''
+  try {
+    await store.importSharedCategory(auth.token, id)
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : 'Could not import category.'
   }
 }
 
@@ -54,6 +96,8 @@ function getIcon(category: typeof store.categories[0]) {
         </button>
       </div>
 
+      <p v-if="actionError" class="text-sm text-error mt-2">{{ actionError }}</p>
+
       <div class="mt-4 space-y-2">
         <div
           v-for="category in store.categories"
@@ -70,15 +114,48 @@ function getIcon(category: typeof store.categories[0]) {
               </div>
             </div>
           </div>
-          <button
-            v-if="!category.isDefault"
-            class="btn btn-ghost btn-sm btn-circle text-error"
-            :aria-label="`Remove ${category.name}`"
-            @click="removeCategory(category.id)"
-          >
-            ✕
-          </button>
+          <div v-if="!category.isDefault" class="flex items-center gap-2">
+            <button
+              class="btn btn-outline btn-xs"
+              :class="category.isShared ? 'btn-secondary' : 'btn-ghost'"
+              :disabled="!auth.isAuthenticated"
+              @click="category.isShared ? unshareCategory(category.id) : shareCategory(category.id)"
+            >
+              {{ category.isShared ? 'Shared' : 'Share' }}
+            </button>
+            <button
+              class="btn btn-ghost btn-sm btn-circle text-error"
+              :aria-label="`Remove ${category.name}`"
+              @click="removeCategory(category.id)"
+            >
+              ✕
+            </button>
+          </div>
           <span v-else class="text-xs opacity-40 px-2">Default</span>
+        </div>
+      </div>
+
+      <div class="mt-6 space-y-2">
+        <h4 class="text-sm font-semibold opacity-70">Shared Community Categories</h4>
+        <div
+          v-for="category in store.sharedCategories"
+          :key="`shared-${category.id}`"
+          class="flex items-center justify-between p-3 bg-base-100 rounded-lg"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-xl">🌍</span>
+            <div>
+              <div class="font-semibold">{{ category.name }}</div>
+              <div class="text-xs opacity-60">Shared by the community</div>
+            </div>
+          </div>
+          <button
+            class="btn btn-primary btn-xs"
+            :disabled="!auth.isAuthenticated"
+            @click="importSharedCategory(category.id)"
+          >
+            Import
+          </button>
         </div>
       </div>
     </div>
