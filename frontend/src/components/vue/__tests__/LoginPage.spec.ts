@@ -54,6 +54,7 @@ describe('LoginPage.vue', () => {
     const wrapper = mount(LoginPage, { global: { plugins: [pinia] } })
     await wrapper.findAll('button.tab')[1].trigger('click')
     await wrapper.find('input[type="text"]').setValue('newuser')
+    await wrapper.find('input[type="email"]').setValue('newuser@example.com')
     await wrapper.find('input[type="password"]').setValue('strong-password')
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()

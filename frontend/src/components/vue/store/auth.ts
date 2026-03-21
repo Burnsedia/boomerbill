@@ -10,6 +10,7 @@ type LoginParams = {
 
 type RegisterParams = {
   username: string
+  email: string
   password: string
 }
 
@@ -121,9 +122,16 @@ export const useAuthStore = defineStore('auth', () => {
     if (!response.ok) {
       let message = 'Could not create account.'
       try {
-        const payload = await response.json() as { username?: string[]; password?: string[]; detail?: string }
+        const payload = await response.json() as {
+          username?: string[]
+          email?: string[]
+          password?: string[]
+          detail?: string
+        }
         if (payload.username?.[0]) {
           message = payload.username[0]
+        } else if (payload.email?.[0]) {
+          message = payload.email[0]
         } else if (payload.password?.[0]) {
           message = payload.password[0]
         } else if (payload.detail) {
@@ -136,6 +144,49 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     await login(params)
+  }
+
+  async function requestPasswordReset(email: string) {
+    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: email.trim().toLowerCase() })
+    })
+
+    if (!response.ok) {
+      throw new Error('Could not send password reset email')
+    }
+  }
+
+  async function resetPasswordConfirm(uid: string, tokenValue: string, newPassword: string) {
+    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password_confirm/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ uid, token: tokenValue, new_password: newPassword })
+    })
+
+    if (!response.ok) {
+      let message = 'Could not reset password.'
+      try {
+        const payload = await response.json() as { new_password?: string[]; token?: string[]; uid?: string[]; detail?: string }
+        if (payload.new_password?.[0]) {
+          message = payload.new_password[0]
+        } else if (payload.token?.[0]) {
+          message = payload.token[0]
+        } else if (payload.uid?.[0]) {
+          message = payload.uid[0]
+        } else if (payload.detail) {
+          message = payload.detail
+        }
+      } catch {
+        // Keep default error message if response is not JSON.
+      }
+      throw new Error(message)
+    }
   }
 
   async function logout() {
@@ -185,6 +236,8 @@ export const useAuthStore = defineStore('auth', () => {
     canUseRemote,
     login,
     register,
+    requestPasswordReset,
+    resetPasswordConfirm,
     logout,
     hydrate
   }
