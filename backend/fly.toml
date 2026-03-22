@@ -9,6 +9,9 @@ console_command = 'python /app/core/manage.py shell'
 
 [build]
 
+[deploy]
+  release_command = 'sh -c "cd /app/core && uv run python manage.py migrate"'
+
 [env]
   PORT = '8000'
 

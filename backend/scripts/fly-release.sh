@@ -60,11 +60,11 @@ printf '\n[1/5] Setting Fly secrets from %s\n' "$ENV_FILE"
 printf '\n[2/5] Deploying app %s\n' "$APP_NAME"
 fly deploy --app "$APP_NAME"
 
-printf '\n[3/5] Running migrations\n'
-fly ssh console --app "$APP_NAME" -C "cd /app && python manage.py migrate"
+printf '\n[3/5] Migration step\n'
+printf 'Using fly.toml release_command to run migrations during deploy.\n'
 
-printf '\n[4/5] Verifying migration state\n'
-fly ssh console --app "$APP_NAME" -C "cd /app && python manage.py showmigrations boomers community"
+printf '\n[4/5] App status\n'
+fly status --app "$APP_NAME"
 
 if [[ -n "$API_URL" ]]; then
   printf '\n[5/5] Public endpoint smoke checks\n'
