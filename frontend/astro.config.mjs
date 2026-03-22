@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'BoomerBill',
         short_name: 'BoomerBill',
         description: 'Track unpaid tech support sessions, sync devices, and join the community feed.',
-        start_url: '/app',
+        start_url: '/app/',
         scope: '/',
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui', 'browser'],

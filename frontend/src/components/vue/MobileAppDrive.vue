@@ -14,10 +14,13 @@ const isIos = ref(false)
 
 const canInstall = computed(() => !isInstalled.value && Boolean(deferredPrompt.value))
 
+const DISMISS_KEY = 'bb_mobile_drive_dismissed_at'
+const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000
+
 function dismiss() {
   isVisible.value = false
   if (typeof window !== 'undefined') {
-    localStorage.setItem('bb_mobile_drive_dismissed', 'true')
+    localStorage.setItem(DISMISS_KEY, String(Date.now()))
   }
 }
 
@@ -46,8 +49,12 @@ onMounted(() => {
       window.navigator.standalone === true)
   isInstalled.value = Boolean(standalone)
 
-  if (typeof window !== 'undefined' && localStorage.getItem('bb_mobile_drive_dismissed') === 'true') {
-    isVisible.value = false
+  if (typeof window !== 'undefined') {
+    const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0)
+    if (Number.isFinite(dismissedAt) && dismissedAt > 0) {
+      const stillDismissed = (Date.now() - dismissedAt) < DISMISS_DURATION_MS
+      isVisible.value = !stillDismissed
+    }
   }
 
   window.addEventListener('beforeinstallprompt', (event) => {
