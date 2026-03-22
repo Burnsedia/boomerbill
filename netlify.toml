@@ -5,3 +5,4 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  PUBLIC_API_BASE_URL = "https://boomerbill-api.fly.dev"
