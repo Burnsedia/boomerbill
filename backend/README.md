@@ -58,6 +58,14 @@ cp .env.example .env.production
 
 If you include `FLY_APP=your-fly-app` in your env file, `--app` is optional.
 
+### Option C: Run full backend release script
+
+This sets secrets, deploys, runs migrations, and verifies migration state in one flow.
+
+```bash
+./scripts/fly-release.sh --env-file .env.production --app your-fly-app --api-url https://your-fly-app.fly.dev
+```
+
 ### Verify reset flow
 
 1. Create a user with email.
