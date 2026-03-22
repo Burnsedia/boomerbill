@@ -37,7 +37,16 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-if ! command -v fly >/dev/null 2>&1; then
+FLY_BIN=""
+if command -v fly >/dev/null 2>&1; then
+  FLY_BIN="$(command -v fly)"
+elif command -v flyctl >/dev/null 2>&1; then
+  FLY_BIN="$(command -v flyctl)"
+elif [[ -x "$HOME/.fly/bin/fly" ]]; then
+  FLY_BIN="$HOME/.fly/bin/fly"
+elif [[ -x "$HOME/.fly/bin/flyctl" ]]; then
+  FLY_BIN="$HOME/.fly/bin/flyctl"
+else
   printf 'Fly CLI not found. Install from https://fly.io/docs/flyctl/install/\n' >&2
   exit 1
 fi
@@ -110,7 +119,7 @@ if [[ ${#SECRET_ARGS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-declare -a CMD=(fly secrets set)
+declare -a CMD=("$FLY_BIN" secrets set)
 CMD+=("${SECRET_ARGS[@]}")
 
 if [[ -n "$APP_NAME" ]]; then
