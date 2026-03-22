@@ -276,10 +276,37 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   function addCategory(name: string) {
     const trimmed = name.trim()
     if (!trimmed) return
+    const normalized = normalizeCategoryName(trimmed)
+    const existing = categories.value.find(category => normalizeCategoryName(category.name) === normalized)
+    if (existing) {
+      return existing.id
+    }
     const id = `category-${Date.now()}`
     categories.value.push({ id, name: trimmed, isDefault: false, isShared: false })
     persist()
     return id
+  }
+
+  function getFallbackCategoryId(excludedId?: string): string | null {
+    const general = categories.value.find(category => (
+      category.id !== excludedId && normalizeCategoryName(category.name) === 'general tech support'
+    ))
+    if (general) return general.id
+
+    const defaultCategory = categories.value.find(category => category.id !== excludedId && category.isDefault)
+    if (defaultCategory) return defaultCategory.id
+
+    const anyCategory = categories.value.find(category => category.id !== excludedId)
+    return anyCategory?.id ?? null
+  }
+
+  function reassignSessionsCategory(oldCategoryId: string, newCategoryId: string | null) {
+    if (!newCategoryId || oldCategoryId === newCategoryId) return
+    sessions.value = sessions.value.map(session => (
+      session.categoryId === oldCategoryId
+        ? { ...session, categoryId: newCategoryId }
+        : session
+    ))
   }
 
   function removeCategory(id: string) {
@@ -287,11 +314,24 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     if (category?.isDefault) {
       throw new Error('Cannot remove default categories')
     }
+
+    const fallbackCategoryId = getFallbackCategoryId(id)
+    reassignSessionsCategory(id, fallbackCategoryId)
+
     categories.value = categories.value.filter(c => c.id !== id)
-    if (selectedCategoryId.value === id) selectedCategoryId.value = null
+    sharedCategories.value = sharedCategories.value.filter(c => c.id !== id)
+    if (selectedCategoryId.value === id) {
+      selectedCategoryId.value = fallbackCategoryId
+    }
     if (typeof window !== 'undefined') {
       const lastCategory = localStorage.getItem('bb_last_category_id')
-      if (lastCategory === id) localStorage.removeItem('bb_last_category_id')
+      if (lastCategory === id) {
+        if (fallbackCategoryId) {
+          localStorage.setItem('bb_last_category_id', fallbackCategoryId)
+        } else {
+          localStorage.removeItem('bb_last_category_id')
+        }
+      }
     }
     persist()
   }
@@ -584,6 +624,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   }
 
   function normalizeCategories(raw: PersistedCategory[]): Category[] {
+    const seen = new Set<string>()
     const customCategories = raw
       .filter(entry => (
         entry &&
@@ -591,13 +632,22 @@ export const useBoomerBill = defineStore('boomerbills', () => {
         typeof entry.name === 'string' &&
         entry.isDefault !== true
       ))
-      .map(entry => ({
-        id: entry.id,
-        name: entry.name,
-        icon: typeof entry.icon === 'string' ? entry.icon : undefined,
-        isDefault: false,
-        isShared: Boolean(entry.isShared)
-      }))
+      .map(entry => {
+        const name = entry.name.trim()
+        return {
+          id: entry.id,
+          name,
+          icon: typeof entry.icon === 'string' ? entry.icon : undefined,
+          isDefault: false,
+          isShared: Boolean(entry.isShared)
+        }
+      })
+      .filter(entry => {
+        const key = normalizeCategoryName(entry.name)
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
 
     return [...DEFAULT_CATEGORIES, ...customCategories]
   }
@@ -858,7 +908,8 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
       const normalizedName = normalizeCategoryName(name)
       const byName = categories.value.find(c => (
-        !c.isDefault && normalizeCategoryName(c.name) === normalizedName
+        normalizeCategoryName(c.name) === normalizedName &&
+        Boolean(c.isDefault) === Boolean(category?.isDefault)
       ))
       if (byName) {
         const oldId = byName.id
@@ -878,11 +929,15 @@ export const useBoomerBill = defineStore('boomerbills', () => {
       })
     }
 
+    const seenShared = new Set<string>()
     sharedCategories.value = remoteSharedCategories
       .map(category => {
         const id = (category?.id || '').trim()
         const name = (category?.name || '').trim()
         if (!id || !name) return null
+        const key = normalizeCategoryName(name)
+        if (!key || seenShared.has(key)) return null
+        seenShared.add(key)
         return {
           id,
           name,
@@ -1043,12 +1098,53 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const payload = await response.json() as { id: string; name: string; is_default?: boolean; is_shared?: boolean }
     const exists = categories.value.find(item => item.id === payload.id)
     if (!exists) {
+      const normalized = normalizeCategoryName(payload.name || '')
+      const byName = categories.value.find(item => normalizeCategoryName(item.name) === normalized)
+      if (byName) {
+        persist()
+        return
+      }
       categories.value.push({
         id: payload.id,
         name: payload.name,
         isDefault: Boolean(payload.is_default),
         isShared: Boolean(payload.is_shared)
       })
+    }
+    persist()
+  }
+
+  async function deleteOrUnimportCategory(token: string, categoryId: string) {
+    const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/remove_or_unimport/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+    if (!response.ok) {
+      throw new Error('Could not remove category')
+    }
+
+    const payload = await response.json() as { id?: string; fallback_category_id?: string }
+    const removedId = (payload.id || categoryId).trim()
+    const fallbackCategoryId = (payload.fallback_category_id || getFallbackCategoryId(removedId) || '').trim() || null
+
+    reassignSessionsCategory(removedId, fallbackCategoryId)
+    categories.value = categories.value.filter(item => item.id !== removedId)
+    sharedCategories.value = sharedCategories.value.filter(item => item.id !== removedId)
+
+    if (selectedCategoryId.value === removedId) {
+      selectedCategoryId.value = fallbackCategoryId
+    }
+    if (typeof window !== 'undefined') {
+      const lastCategory = localStorage.getItem('bb_last_category_id')
+      if (lastCategory === removedId) {
+        if (fallbackCategoryId) {
+          localStorage.setItem('bb_last_category_id', fallbackCategoryId)
+        } else {
+          localStorage.removeItem('bb_last_category_id')
+        }
+      }
     }
     persist()
   }
@@ -1124,6 +1220,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     shareCategory,
     unshareCategory,
     importSharedCategory,
+    deleteOrUnimportCategory,
     load,
     persist
   }

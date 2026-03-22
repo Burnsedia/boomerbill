@@ -180,6 +180,62 @@ class CategorySharingApiTests(APITestCase):
             ).exists()
         )
 
+    def test_owner_can_remove_category_and_reassign_sessions_to_general(self):
+        general = Category.objects.create(
+            id="general",
+            name="General Tech Support",
+            is_default=True,
+            owner=None,
+            is_shared=True,
+        )
+        boomer = Boomer.objects.create(name="Session Boomer")
+        session = Session.objects.create(
+            owner=self.owner,
+            boomer=boomer,
+            category=self.private_category,
+            minutes=15,
+            cost=1234,
+            start=timezone.now() - timedelta(minutes=15),
+            end=timezone.now(),
+            note="test",
+        )
+        self.client.force_authenticate(self.owner)
+
+        response = self.client.post(
+            f"/api/category/{self.private_category.id}/remove_or_unimport/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Category.objects.filter(id=self.private_category.id).exists())
+        session.refresh_from_db()
+        self.assertEqual(session.category_id, general.id)
+        self.assertEqual(response.data.get("fallback_category_id"), general.id)
+
+    def test_cannot_remove_default_category(self):
+        default_category = Category.objects.create(
+            id="default-general",
+            name="General Tech Support",
+            is_default=True,
+            owner=None,
+            is_shared=True,
+        )
+        self.client.force_authenticate(self.owner)
+
+        response = self.client.post(
+            f"/api/category/{default_category.id}/remove_or_unimport/"
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_other_user_cannot_remove_owner_category(self):
+        self.client.force_authenticate(self.other)
+
+        response = self.client.post(
+            f"/api/category/{self.private_category.id}/remove_or_unimport/"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     def test_push_creates_session_for_owner(self):
         self.client.force_authenticate(self.owner)
         payload = {

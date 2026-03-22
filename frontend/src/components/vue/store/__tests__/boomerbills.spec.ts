@@ -106,4 +106,44 @@ describe('useBoomerBill Store', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith('bb_sessions', expect.any(String))
   })
+
+  it('reassigns sessions to General when removing a custom category', () => {
+    const store = setupSelections()
+    const customCategoryId = store.addCategory('Router Rescue') || 'category-custom'
+    store.selectCategory(customCategoryId)
+    store.addSession({ minutes: 12, note: 'router' })
+
+    store.removeCategory(customCategoryId)
+
+    expect(store.categories.some(category => category.id === customCategoryId)).toBe(false)
+    expect(store.sessions[0].categoryId).toBe('general')
+  })
+
+  it('removes category through API and reassigns sessions to fallback category', async () => {
+    const store = setupSelections()
+    const customCategoryId = store.addCategory('Cable Setup') || 'category-custom'
+    store.selectCategory(customCategoryId)
+    store.addSession({ minutes: 8, note: 'hdmi' })
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: customCategoryId,
+        fallback_category_id: 'general'
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await store.deleteOrUnimportCategory('token-123', customCategoryId)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`/api/category/${encodeURIComponent(customCategoryId)}/remove_or_unimport/`),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Token token-123' })
+      })
+    )
+    expect(store.categories.some(category => category.id === customCategoryId)).toBe(false)
+    expect(store.sessions[0].categoryId).toBe('general')
+  })
 })

@@ -108,6 +108,57 @@ class CategoryViewSet(ModelViewSet):
         )
         return Response(self.get_serializer(imported).data, status=201)
 
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def remove_or_unimport(self, request, pk=None):
+        category = self.get_object()
+        if category.is_default:
+            return Response(
+                {"detail": "Default categories cannot be removed."}, status=400
+            )
+        if category.owner_id != request.user.id:
+            return Response(
+                {"detail": "Only the owner can remove this category."}, status=403
+            )
+
+        fallback = (
+            Category.objects.filter(
+                owner=None,
+                normalized_name="general tech support",
+            )
+            .exclude(pk=category.pk)
+            .first()
+        )
+        if not fallback:
+            fallback = (
+                Category.objects.filter(
+                    models.Q(owner=request.user) | models.Q(owner=None),
+                    is_default=True,
+                )
+                .exclude(pk=category.pk)
+                .order_by("name")
+                .first()
+            )
+        if not fallback:
+            return Response(
+                {"detail": "No fallback category available for reassignment."},
+                status=400,
+            )
+
+        reassigned = Session.objects.filter(
+            owner=request.user, category=category
+        ).update(category=fallback)
+        removed_id = category.id
+        category.delete()
+        return Response(
+            {
+                "id": removed_id,
+                "reassigned_sessions": reassigned,
+                "fallback_category_id": fallback.id,
+            }
+        )
+
 
 class BoomerViewSet(ModelViewSet):
     queryset = Boomer.objects.annotate(

@@ -15,12 +15,23 @@ function addCategory() {
 }
 
 function removeCategory(id: string) {
-  if (confirm('Remove this category?')) {
-    try {
-      store.removeCategory(id)
-    } catch (err) {
-      alert(err)
-    }
+  const category = store.categories.find(item => item.id === id)
+  if (!category) return
+  const label = isImportedCategory(category) ? 'Unimport' : 'Delete'
+  if (!confirm(`${label} this category? Existing sessions will be moved to General Tech Support.`)) return
+
+  actionError.value = ''
+  if (auth.token) {
+    void store.deleteOrUnimportCategory(auth.token, id).catch(error => {
+      actionError.value = error instanceof Error ? error.message : 'Could not remove category.'
+    })
+    return
+  }
+
+  try {
+    store.removeCategory(id)
+  } catch (error) {
+    actionError.value = error instanceof Error ? error.message : 'Could not remove category.'
   }
 }
 
@@ -75,6 +86,16 @@ const iconMap: Record<string, string> = {
 function getIcon(category: typeof store.categories[0]) {
   return iconMap[category.icon || ''] || '📋'
 }
+
+function normalizeName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function isImportedCategory(category: typeof store.categories[0]) {
+  if (category.isDefault) return false
+  const normalized = normalizeName(category.name)
+  return store.sharedCategories.some(item => normalizeName(item.name) === normalized)
+}
 </script>
 
 <template>
@@ -124,11 +145,11 @@ function getIcon(category: typeof store.categories[0]) {
               {{ category.isShared ? 'Shared' : 'Share' }}
             </button>
             <button
-              class="btn btn-ghost btn-sm btn-circle text-error"
-              :aria-label="`Remove ${category.name}`"
+              class="btn btn-error btn-outline btn-xs"
+              :aria-label="`${isImportedCategory(category) ? 'Unimport' : 'Delete'} ${category.name}`"
               @click="removeCategory(category.id)"
             >
-              ✕
+              {{ isImportedCategory(category) ? 'Unimport' : 'Delete' }}
             </button>
           </div>
           <span v-else class="text-xs opacity-40 px-2">Default</span>
