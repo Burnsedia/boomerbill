@@ -1,0 +1,31 @@
+version: "1.0"
+app: boomerbill
+
+avatar:
+  id: foss_product_user_icp
+  label: Boundary Builder Ben
+  role: Freelancer or technical helper
+  context: Frequently asked for unpaid technical help
+
+goals:
+  - Quantify unpaid support time
+  - Protect calendar focus for paid work
+  - Set clearer personal boundaries
+
+pain_points:
+  - '"Quick fixes" consume multiple hours weekly'
+  - No visibility into real support cost
+  - Existing tools feel like invoicing software, not awareness tools
+
+objections:
+  - "I do not want another account"
+  - "I do not want cloud tracking"
+
+proof_required:
+  - Local-first behavior
+  - Simple setup under ten minutes
+  - Clear weekly summary value
+
+ctas:
+  primary: Try local version
+  secondary: Join hosted beta
