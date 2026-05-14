@@ -1,0 +1,17 @@
+[2m2026-05-13T23:28:00Z[0m proxy[78469e3f4095d8] [32miad[0m [[34minfo[0m]Starting machine
+[2m2026-05-13T23:28:00Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m]2026-05-13T23:28:00.813992119 [01KMACS6M554K4B563DX5RSKRY:main] Running Firecracker v1.14.2
+[2m2026-05-13T23:28:00Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m]2026-05-13T23:28:00.815403451 [01KMACS6M554K4B563DX5RSKRY:main] Listening on API socket ("/fc.sock").
+[2m2026-05-13T23:28:00Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m]2026-05-13T23:28:00.815854976 [01KMACS6M554K4B563DX5RSKRY:fc_api] API server started.
+[2m2026-05-13T23:28:01Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][32m INFO[0m Starting init (commit: 350f2667)...
+[2m2026-05-13T23:28:02Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][32m INFO[0m starting statics vsock server
+[2m2026-05-13T23:28:02Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][32m INFO[0m Preparing to run: `sh -c cd /app/core && uv run gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000}` as root
+[2m2026-05-13T23:28:02Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][32m INFO[0m [fly api proxy] listening at /.fly/api
+[2m2026-05-13T23:28:02Z[0m runner[78469e3f4095d8] [32miad[0m [[34minfo[0m]Machine started in 1.441s
+[2m2026-05-13T23:28:02Z[0m proxy[78469e3f4095d8] [32miad[0m [[34minfo[0m]machine started in 1.581815636s
+[2m2026-05-13T23:28:02Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m]2026/05/13 23:28:02 INFO SSH listening listen_address=[fdaa:9:279e:a7b:662:3022:f14d:2]:22
+[2m2026-05-13T23:28:03Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][2026-05-13 23:28:03 +0000] [664] [INFO] Starting gunicorn 25.1.0
+[2m2026-05-13T23:28:03Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][2026-05-13 23:28:03 +0000] [664] [INFO] Listening at: http://0.0.0.0:8000 (664)
+[2m2026-05-13T23:28:03Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][2026-05-13 23:28:03 +0000] [664] [INFO] Using worker: sync
+[2m2026-05-13T23:28:03Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][2026-05-13 23:28:03 +0000] [666] [INFO] Booting worker with pid: 666
+[2m2026-05-13T23:28:03Z[0m app[78469e3f4095d8] [32miad[0m [[34minfo[0m][2026-05-13 23:28:03 +0000] [664] [INFO] Control socket listening at /app/core/gunicorn.ctl
+[2m2026-05-13T23:28:03Z[0m proxy[78469e3f4095d8] [32miad[0m [[34minfo[0m]machine became reachable in 1.581237261s
