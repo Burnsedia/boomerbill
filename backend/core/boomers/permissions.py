@@ -1,6 +1,6 @@
 from rest_framework import permissions
 
-
+#NOTE: I toke this straight off the django rest framework docs
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object to edit it.

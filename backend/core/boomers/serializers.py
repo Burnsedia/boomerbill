@@ -54,6 +54,8 @@ class BoomerSerializer(serializers.ModelSerializer):
         )
 
 
+#TODO: refactor this to just be a serializers no busiess logic
+#NOTE: I vibed coded the hole app. This is bade practise
 class SessionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         start = attrs.get("start")
