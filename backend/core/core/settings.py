@@ -8,36 +8,25 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+#TODO: import and setup django_environ
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 
-def env_bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def env_list(name: str) -> list[str]:
-    raw = os.environ.get(name, "")
-    return [item.strip() for item in raw.split(",") if item.strip()]
-
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-ukz=f&9f$fju1yupbp$*es$%5bqaxq**fgdf^li1=qn(hq2&q9",
+    "DJANGO_SECRET_KEY"
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = os.environ.get(
+    "DJANGO_DEBUG"
+)
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0", "testserver"]
+ALLOWED_HOSTS = os.environ.get(
+"DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost", "0.0.0.0", "testserver"]
 
+)
 
 # Application definition
 
@@ -164,20 +153,13 @@ DJOSER = {
 DOMAIN = os.environ.get("PUBLIC_DOMAIN", "localhost:4321")
 SITE_NAME = os.environ.get("SITE_NAME", "BoomerBill")
 
-frontend_origin = os.environ.get("FRONTEND_ORIGIN")
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
-if frontend_origin and frontend_origin not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append(frontend_origin)
+CORS_ALLOWED_ORIGINS = os.environ.get(
+"CORS_ALLOWED_ORIGINS"
+)
 
-if not CORS_ALLOWED_ORIGINS and DEBUG:
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:4321",
-        "http://127.0.0.1:4321",
-    ]
-
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
-if frontend_origin and frontend_origin not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(frontend_origin)
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+"CSRF_TRUSTED_ORIGINS"
+)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -185,6 +167,7 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
+#TODO: refactor this to 
 email_provider = os.environ.get("EMAIL_PROVIDER", "console").strip().lower()
 if email_provider == "smtp":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
