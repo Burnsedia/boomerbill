@@ -142,7 +142,7 @@ DJOSER = {
     "LOGIN_FIELD": "username",
     "PASSWORD_RESET_CONFIRM_URL": env(
         "PASSWORD_RESET_CONFIRM_URL",
-        "reset-password?uid={uid}&token={token}",
+        default="reset-password?uid={uid}&token={token}",
     ),
 }
 
