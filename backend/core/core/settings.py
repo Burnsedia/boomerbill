@@ -1,43 +1,34 @@
 """Django settings for core project."""
 
-import os
 from pathlib import Path
 
-import dj_database_url
+import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+env = environ.Env()
+environ.Env.read_env(BASE_DIR.parent / ".env")
 
-def env_bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def env_list(name: str) -> list[str]:
-    raw = os.environ.get(name, "")
-    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-ukz=f&9f$fju1yupbp$*es$%5bqaxq**fgdf^li1=qn(hq2&q9",
-)
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-dev-key")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost", "0.0.0.0", "testserver"]
+default_allowed_hosts = ["127.0.0.1", "localhost", "0.0.0.0", "testserver"] if DEBUG else []
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=default_allowed_hosts)
 
+if not DEBUG and SECRET_KEY == "unsafe-dev-key":
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=False")
+
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG=False")
 
 # Application definition
 
@@ -92,19 +83,14 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 }
 
-database_url = os.environ.get("DATABASE_URL")
-if database_url:
-    DATABASES["default"] = dj_database_url.parse(
-        database_url,
-        conn_max_age=600,
-        ssl_require=env_bool("DATABASE_SSL_REQUIRE", False),
-    )
+if (
+    DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
+    and env.bool("DATABASE_SSL_REQUIRE", default=False)
+):
+    DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "require"
 
 
 # Password validation
@@ -155,49 +141,35 @@ DJOSER = {
         "user_create": "users.serializers.EmailRequiredUserCreateSerializer",
     },
     "LOGIN_FIELD": "username",
-    "PASSWORD_RESET_CONFIRM_URL": os.environ.get(
+    "PASSWORD_RESET_CONFIRM_URL": env(
         "PASSWORD_RESET_CONFIRM_URL",
-        "reset-password?uid={uid}&token={token}",
+        default="reset-password?uid={uid}&token={token}",
     ),
 }
 
-DOMAIN = os.environ.get("PUBLIC_DOMAIN", "localhost:4321")
-SITE_NAME = os.environ.get("SITE_NAME", "BoomerBill")
+DOMAIN = env("PUBLIC_DOMAIN", default="localhost:4321")
+SITE_NAME = env("SITE_NAME", default="BoomerBill")
 
-frontend_origin = os.environ.get("FRONTEND_ORIGIN")
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
-if frontend_origin and frontend_origin not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append(frontend_origin)
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
-if not CORS_ALLOWED_ORIGINS and DEBUG:
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:4321",
-        "http://127.0.0.1:4321",
-    ]
-
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
-if frontend_origin and frontend_origin not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(frontend_origin)
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
 
-email_provider = os.environ.get("EMAIL_PROVIDER", "console").strip().lower()
+email_provider = env("EMAIL_PROVIDER", default="console").strip().lower()
 if email_provider == "smtp":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
-    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-    EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-    EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
+    EMAIL_HOST = env("EMAIL_HOST", default="")
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+    EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+    EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "DEFAULT_FROM_EMAIL", "BoomerBill <noreply@boomerbill.net>"
-)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="BoomerBill <noreply@boomerbill.net>")

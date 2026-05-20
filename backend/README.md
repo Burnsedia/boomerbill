@@ -18,6 +18,30 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
+## Production Runtime Security Requirements
+
+When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
+
+- `DJANGO_SECRET_KEY` must be set to a real secret.
+- `DJANGO_ALLOWED_HOSTS` must be explicitly set (comma-separated list).
+- `DATABASE_URL` should be set to Postgres in production.
+- `DATABASE_SSL_REQUIRE=True` enables `sslmode=require` for Postgres.
+
+Local development remains functional without `DATABASE_URL`; sqlite is used by default.
+
+### Validation commands
+
+```bash
+# Fails: production mode without required secret key
+uv run python manage.py check
+
+# Passes: local dev defaults (sqlite)
+DJANGO_DEBUG=True uv run python manage.py check
+
+# Passes: production-like config with required values
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=test-secret DJANGO_ALLOWED_HOSTS=example.com DATABASE_SSL_REQUIRE=True uv run python manage.py check
+```
+
 ## SendGrid SMTP on Fly
 
 BoomerBill uses Django + Djoser for password recovery emails. No email SDK is needed; Django SMTP is enough.
