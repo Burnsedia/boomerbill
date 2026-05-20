@@ -16,6 +16,22 @@ environ.Env.read_env(BASE_DIR.parent / ".env")
 
 
 
+def _looks_like_placeholder_secret(value: str) -> bool:
+    normalized = (value or "").strip().lower()
+    if not normalized:
+        return True
+    placeholder_tokens = (
+        "replace-with",
+        "replace_me",
+        "changeme",
+        "change-me",
+        "example",
+        "unsafe-dev-key",
+    )
+    return any(token in normalized for token in placeholder_tokens)
+
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-dev-key")
 
@@ -24,8 +40,10 @@ DEBUG = env.bool("DJANGO_DEBUG", default=False)
 default_allowed_hosts = ["127.0.0.1", "localhost", "0.0.0.0", "testserver"] if DEBUG else []
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=default_allowed_hosts)
 
-if not DEBUG and SECRET_KEY == "unsafe-dev-key":
-    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=False")
+if not DEBUG and _looks_like_placeholder_secret(SECRET_KEY):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set to a real externally managed secret when DJANGO_DEBUG=False"
+    )
 
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG=False")
@@ -169,6 +187,11 @@ if email_provider == "smtp":
     EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
     EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
     EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
+
+    if not DEBUG and not EMAIL_HOST_PASSWORD.strip():
+        raise ImproperlyConfigured(
+            "EMAIL_HOST_PASSWORD must be set when EMAIL_PROVIDER=smtp and DJANGO_DEBUG=False"
+        )
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
