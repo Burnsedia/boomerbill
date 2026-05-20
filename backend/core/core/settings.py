@@ -88,7 +88,10 @@ DATABASES = {
     "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 }
 
-if env.bool("DATABASE_SSL_REQUIRE", default=False):
+if (
+    DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
+    and env.bool("DATABASE_SSL_REQUIRE", default=False)
+):
     DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "require"
 
 
