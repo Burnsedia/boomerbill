@@ -23,6 +23,7 @@ dependencies = [
     { name = "djoser" },
     { name = "gunicorn" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "python-environ" },
 ]
 
 [package.metadata]
@@ -34,6 +35,7 @@ requires-dist = [
     { name = "djoser", specifier = ">=2.3.3" },
     { name = "gunicorn", specifier = ">=22.0.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9" },
+    { name = "python-environ", specifier = ">=0.4.54" },
 ]
 
 [[package]]
@@ -380,6 +382,12 @@ wheels = [
 crypto = [
     { name = "cryptography" },
 ]
+
+[[package]]
+name = "python-environ"
+version = "0.4.54"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0c/5d/8d4462fe29d3d3357eaac0f8321b7d0e77d0a4ea64505be1e6a90fba42dc/python-environ-0.4.54.tar.gz", hash = "sha256:6249a14057f95aba3b4906d73276f770e01e659f8098b3f3b34295feac42865b", size = 22947, upload-time = "2020-04-13T06:42:49.443Z" }
 
 [[package]]
 name = "python3-openid"

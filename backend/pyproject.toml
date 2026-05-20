@@ -12,4 +12,5 @@ dependencies = [
     "djoser>=2.3.3",
     "gunicorn>=22.0.0",
     "psycopg[binary]>=3.2.9",
+    "python-environ>=0.4.54",
 ]
