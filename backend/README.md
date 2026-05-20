@@ -24,6 +24,7 @@ When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
 
 - `DJANGO_SECRET_KEY` must be set to a real secret.
 - `DJANGO_ALLOWED_HOSTS` must be explicitly set (comma-separated list).
+- If `EMAIL_PROVIDER=smtp`, `EMAIL_HOST_PASSWORD` must be set.
 - `DATABASE_URL` should be set to Postgres in production.
 - `DATABASE_SSL_REQUIRE=True` enables `sslmode=require` for Postgres.
 
@@ -33,14 +34,22 @@ Local development remains functional without `DATABASE_URL`; sqlite is used by d
 
 ```bash
 # Fails: production mode without required secret key
-uv run python manage.py check
+DJANGO_DEBUG=False DJANGO_ALLOWED_HOSTS=example.com uv run python manage.py check
+
+# Fails: production mode with placeholder secret key
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=replace-with-strong-secret DJANGO_ALLOWED_HOSTS=example.com uv run python manage.py check
+
+# Fails: smtp configured without SMTP password
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com EMAIL_PROVIDER=smtp EMAIL_HOST=smtp.sendgrid.net EMAIL_HOST_PASSWORD= uv run python manage.py check
 
 # Passes: local dev defaults (sqlite)
 DJANGO_DEBUG=True uv run python manage.py check
 
 # Passes: production-like config with required values
-DJANGO_DEBUG=False DJANGO_SECRET_KEY=test-secret DJANGO_ALLOWED_HOSTS=example.com DATABASE_SSL_REQUIRE=True uv run python manage.py check
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com DATABASE_SSL_REQUIRE=True uv run python manage.py check
 ```
+
+See `backend/SECURITY_RUNBOOK.md` for secret rotation and incident response checklists.
 
 ## SendGrid SMTP on Fly
 
