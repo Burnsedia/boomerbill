@@ -21,10 +21,8 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default="unsafe-dev-key")
 
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list(
-    "DJANGO_ALLOWED_HOSTS",
-    default=["127.0.0.1", "localhost", "0.0.0.0", "testserver"],
-)
+default_allowed_hosts = ["127.0.0.1", "localhost", "0.0.0.0", "testserver"] if DEBUG else []
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=default_allowed_hosts)
 
 if not DEBUG and SECRET_KEY == "unsafe-dev-key":
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=False")
