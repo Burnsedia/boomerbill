@@ -41,6 +41,7 @@ from django.db import connection, reset_queries
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
+from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -350,7 +351,7 @@ def benchmark_sync_push(runs: int) -> dict:
             content_type="application/json",
         )
         force_authenticate(wsgi_request, user=user)
-        request = Request(wsgi_request)
+        request = Request(wsgi_request, parsers=[JSONParser()])
 
         with track_queries() as result:
             view = SyncPushView()
@@ -389,9 +390,8 @@ def benchmark_public_boomer_wall(runs: int) -> dict:
     query_counts = []
 
     for _ in range(runs):
-        request = factory.get("/api/public/wall/boomers/")
-        request.META["SERVER_NAME"] = "localhost"
-        request.META["SERVER_PORT"] = "8000"
+        wsgi_request = factory.get("/api/public/wall/boomers/")
+        request = Request(wsgi_request)
 
         with track_queries() as result:
             view = PublicBoomerWallView()

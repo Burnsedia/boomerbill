@@ -518,6 +518,11 @@ class SyncPullView(APIView):
                 cursor_dt = datetime.fromtimestamp(
                     float(cursor_ms) / 1000.0, tz=timezone.utc
                 )
+                # Add 1 microsecond to handle precision loss when the client
+                # derived the cursor from a DB datetime (microsecond → ms → datetime).
+                # This ensures strict "after cursor" semantics.
+                from datetime import timedelta
+                cursor_dt = cursor_dt + timedelta(microseconds=1)
                 queryset = queryset.filter(start__gt=cursor_dt)
             except (TypeError, ValueError, OSError):
                 # Invalid cursor — ignore and return all from start
