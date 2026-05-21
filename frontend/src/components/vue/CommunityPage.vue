@@ -287,66 +287,50 @@ async function setWallSort(nextSort: 'top' | 'new') {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="card bg-base-200 border border-primary shadow-lg">
+  <div class="page-sections">
+    <!-- Primary: Community header -->
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
-        <h2 class="card-title">Community</h2>
-        <p class="text-sm opacity-70">Read public rankings and posts. Sign in to post, reply, and follow users.</p>
+        <h2 class="card-title text-lg font-semibold">Community</h2>
+        <p class="text-sm text-base-content/70 mt-1">See public rankings and swap war stories. Sign in to post, reply, and follow.</p>
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Primary: Community content area with tabs -->
+    <div class="card-elevated rounded-xl">
       <div class="card-body gap-4">
-        <div
-          ref="mainTabsRef"
-          class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
-          :class="{
-            'has-overflow-left': mainTabsOverflow.left,
-            'has-overflow-right': mainTabsOverflow.right,
-            'has-overflow-both': mainTabsOverflow.left && mainTabsOverflow.right
-          }"
-          @scroll="checkOverflow(mainTabsRef, mainTabsOverflow)"
-        >
-          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'">
+        <div class="tabs tabs-boxed w-fit">
+          <button class="tab" :class="{ 'tab-active': activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'">
             Leaderboard
           </button>
-          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'messages' }" @click="activeTab = 'messages'">
+          <button class="tab" :class="{ 'tab-active': activeTab === 'messages' }" @click="activeTab = 'messages'">
             Message Board
           </button>
-          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'wall' }" @click="activeTab = 'wall'">
+          <button class="tab" :class="{ 'tab-active': activeTab === 'wall' }" @click="activeTab = 'wall'">
             Wall of Shame
           </button>
         </div>
 
-        <div v-if="activeTab === 'leaderboard'" class="space-y-3 min-h-[65vh]">
-          <div class="alert border border-secondary/40 bg-base-300 text-sm">
+        <div v-if="activeTab === 'leaderboard'" class="space-y-4 min-h-[65vh]">
+          <div class="alert border border-secondary/40 bg-base-300/60 text-sm">
             Climb the board, build your rep, and unlock future dev tools built for nerds who ship.
           </div>
           <PublicUserLeaderboard />
         </div>
 
-        <div v-else-if="activeTab === 'messages'" class="space-y-3 min-h-[65vh]">
-          <div class="alert border border-secondary/40 bg-base-300 text-sm">
+        <div v-else-if="activeTab === 'messages'" class="space-y-4 min-h-[65vh]">
+          <div class="alert border border-secondary/40 bg-base-300/60 text-sm">
             Public wall for tips and war stories. Read free, post and reply with a free account.
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <div
-              ref="msgTabsRef"
-              class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
-              :class="{
-                'has-overflow-left': msgTabsOverflow.left,
-                'has-overflow-right': msgTabsOverflow.right,
-                'has-overflow-both': msgTabsOverflow.left && msgTabsOverflow.right
-              }"
-              @scroll="checkOverflow(msgTabsRef, msgTabsOverflow)"
-            >
-              <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': messageSort === 'top' }" @click="setMessageSort('top')">Top</button>
-              <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': messageSort === 'new' }" @click="setMessageSort('new')">New</button>
+            <div class="tabs tabs-boxed w-fit">
+              <button class="tab" :class="{ 'tab-active': messageSort === 'top' }" @click="setMessageSort('top')">Top</button>
+              <button class="tab" :class="{ 'tab-active': messageSort === 'new' }" @click="setMessageSort('new')">New</button>
             </div>
             <div class="tabs tabs-boxed w-fit">
-              <button class="tab tap-target-min" :class="{ 'tab-active': messageScope === 'all' }" @click="setMessageScope('all')">All</button>
-              <button class="tab tap-target-min" :class="{ 'tab-active': messageScope === 'following' }" @click="setMessageScope('following')">Following</button>
+              <button class="tab" :class="{ 'tab-active': messageScope === 'all' }" @click="setMessageScope('all')">All</button>
+              <button class="tab" :class="{ 'tab-active': messageScope === 'following' }" @click="setMessageScope('following')">Following</button>
             </div>
           </div>
 
@@ -365,7 +349,7 @@ async function setWallSort(nextSort: 'top' | 'new') {
             </div>
           </div>
 
-          <div v-else class="alert border border-primary/40 bg-base-300 text-sm">
+          <div v-else class="alert border border-primary/40 bg-base-300/60 text-sm">
             Create a free account to post, reply, and follow users.
           </div>
 
@@ -387,20 +371,20 @@ async function setWallSort(nextSort: 'top' | 'new') {
             message="No posts yet. Be the first."
           />
 
-          <div v-else class="space-y-2">
-            <div v-for="post in posts" :key="post.id" class="rounded-lg border border-base-300 bg-base-300 p-3">
-              <div class="flex items-center justify-between gap-2 text-xs opacity-70">
-                <span>@{{ post.author_username }}</span>
+          <div v-else class="space-y-3">
+            <div v-for="post in posts" :key="post.id" class="sub-card p-4">
+              <div class="flex items-center justify-between gap-2 text-xs text-base-content/70">
+                <span class="font-medium">@{{ post.author_username }}</span>
                 <span>{{ formatDate(post.created_at) }}</span>
               </div>
-              <p class="mt-1 whitespace-pre-wrap">{{ post.body }}</p>
-              <div class="mt-2 flex items-center justify-between">
+              <p class="mt-2 whitespace-pre-wrap text-base-content/90">{{ post.body }}</p>
+              <div class="mt-3 flex items-center justify-between">
                 <button class="btn btn-xs btn-outline" @click="toggleReplies(post.id)">
                   {{ expandedPosts[post.id] ? 'Hide replies' : 'Replies' }} ({{ post.reply_count || 0 }})
                 </button>
               </div>
 
-              <div v-if="expandedPosts[post.id]" class="mt-3 space-y-2 border-t border-base-100 pt-2">
+              <div v-if="expandedPosts[post.id]" class="mt-3 space-y-2 section-divider pt-3">
                 <StatusIndicator
                   v-if="loadingReplies[post.id]"
                   state="loading"
@@ -419,13 +403,13 @@ async function setWallSort(nextSort: 'top' | 'new') {
                   message="No replies yet."
                 />
 
-                <div v-else class="space-y-1">
-                  <div v-for="reply in replyLists[post.id]" :key="reply.id" class="rounded bg-base-100 p-2">
-                    <div class="flex items-center justify-between text-[11px] opacity-70">
-                      <span>@{{ reply.author_username }}</span>
+                <div v-else class="space-y-2">
+                  <div v-for="reply in replyLists[post.id]" :key="reply.id" class="rounded bg-base-100/60 p-2.5">
+                    <div class="flex items-center justify-between text-[11px] text-base-content/60">
+                      <span class="font-medium">@{{ reply.author_username }}</span>
                       <span>{{ formatDate(reply.created_at) }}</span>
                     </div>
-                    <p class="text-sm mt-1 whitespace-pre-wrap">{{ reply.body }}</p>
+                    <p class="text-sm mt-1 whitespace-pre-wrap text-base-content/80">{{ reply.body }}</p>
                   </div>
                 </div>
 
@@ -447,31 +431,22 @@ async function setWallSort(nextSort: 'top' | 'new') {
                     </button>
                   </div>
                 </div>
-                <div v-else class="text-xs opacity-70">Sign in to reply.</div>
+                <div v-else class="text-xs text-base-content/60">Sign in to reply.</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-else class="space-y-3 min-h-[65vh]">
-          <div class="alert border border-error/40 bg-base-300 text-sm">
+        <div v-else class="space-y-4 min-h-[65vh]">
+          <div class="alert border border-error/40 bg-base-300/60 text-sm">
             Public Wall of Shame: expensive boomers, top pain points, and the notes that caused the damage.
           </div>
 
-          <div
-            ref="wallTabsRef"
-            class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
-            :class="{
-              'has-overflow-left': wallTabsOverflow.left,
-              'has-overflow-right': wallTabsOverflow.right,
-              'has-overflow-both': wallTabsOverflow.left && wallTabsOverflow.right
-            }"
-            @scroll="checkOverflow(wallTabsRef, wallTabsOverflow)"
-          >
-            <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': wallSort === 'top' }" @click="setWallSort('top')">
+          <div class="tabs tabs-boxed w-fit">
+            <button class="tab" :class="{ 'tab-active': wallSort === 'top' }" @click="setWallSort('top')">
               Top Damage
             </button>
-            <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': wallSort === 'new' }" @click="setWallSort('new')">
+            <button class="tab" :class="{ 'tab-active': wallSort === 'new' }" @click="setWallSort('new')">
               Most Recent
             </button>
           </div>
@@ -494,21 +469,21 @@ async function setWallSort(nextSort: 'top' | 'new') {
             message="No boomer shame data yet."
           />
 
-          <div v-else class="space-y-2">
+          <div v-else class="space-y-3">
             <div
               v-for="item in wallItems"
               :key="item.boomer_id"
-              class="rounded-lg border border-base-300 bg-base-300 p-3"
-              :class="{ 'border-error': item.rank === 1 }"
+              class="sub-card p-4"
+              :class="{ 'border-error/60 bg-error/5': item.rank === 1 }"
             >
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div class="font-semibold">#{{ item.rank }} {{ item.name }}</div>
-                  <div class="text-xs opacity-70">Top category: {{ item.top_category }}</div>
+                  <div class="text-xs text-base-content/60 mt-0.5">Top category: {{ item.top_category }}</div>
                 </div>
                 <div class="text-right">
                   <div class="font-mono font-bold text-error">${{ (item.lifetime_damage / 100).toFixed(2) }}</div>
-                  <div class="text-xs opacity-60">Lifetime damage</div>
+                  <div class="text-xs text-base-content/50 mt-0.5">Lifetime damage</div>
                 </div>
               </div>
             </div>

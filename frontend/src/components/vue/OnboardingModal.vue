@@ -57,7 +57,7 @@ onMounted(() => {
         <div>
           <h2 id="onboarding-title" class="card-title">Welcome to BoomerBill</h2>
           <p class="text-sm opacity-70">
-            Add the boomers you help most so you can start billing immediately.
+            Add the folks you help most so you can start tracking the damage.
           </p>
         </div>
 

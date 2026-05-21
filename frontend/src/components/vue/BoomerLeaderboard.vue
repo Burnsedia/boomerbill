@@ -7,7 +7,7 @@ const store = useBoomerBill()
 <template>
   <div class="space-y-2">
     <div v-if="store.boomerLeaderboard.length === 0" class="text-center py-8 text-opacity-60">
-      No boomers with sessions yet.
+      No boomers have caused damage yet.
     </div>
 
     <div
@@ -31,7 +31,7 @@ const store = useBoomerBill()
     </div>
 
     <div v-if="store.boomerLeaderboard.length > 0" class="text-center text-xs opacity-60 mt-4">
-      {{ store.boomerLeaderboard[0].boomer.name }} is your most expensive boomer.
+      {{ store.boomerLeaderboard[0].boomer.name }} tops the damage chart.
     </div>
   </div>
 </template>

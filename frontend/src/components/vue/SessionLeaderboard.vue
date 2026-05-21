@@ -6,8 +6,8 @@ const store = useBoomerBill()
 
 <template>
   <div class="space-y-2">
-    <div v-if="store.sortedSessions.length === 0" class="text-center py-8 text-opacity-60">
-      No sessions recorded yet.
+    <div v-if="store.sortedSessions.length === 0" class="text-center py-8 text-base-content/70">
+      No sessions yet — start the clock to see your biggest hits.
     </div>
 
     <div
@@ -21,7 +21,7 @@ const store = useBoomerBill()
           <div class="font-semibold">
             {{ store.boomers.find(b => b.id === session.boomerId)?.name || 'Unknown' }}
           </div>
-          <div class="text-xs opacity-60">
+          <div class="text-xs text-base-content/70">
             {{ store.categories.find(c => c.id === session.categoryId)?.name || 'Unknown' }}
             <span v-if="session.note">- {{ session.note }}</span>
           </div>
@@ -30,7 +30,7 @@ const store = useBoomerBill()
 
       <div class="text-right">
         <div class="font-mono font-bold text-error">${{ session.cost.toFixed(2) }}</div>
-        <div class="text-xs opacity-60">{{ session.minutes }} min</div>
+        <div class="text-xs text-base-content/70">{{ session.minutes }} min</div>
       </div>
     </div>
   </div>

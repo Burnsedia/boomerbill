@@ -13,7 +13,7 @@ const store = useBoomerBill()
     <!-- Primary: Session start card - main action area -->
     <div class="card-elevated rounded-xl w-full">
       <div class="card-body gap-4">
-        <h2 class="card-title text-lg font-semibold">Start a Session</h2>
+        <h2 class="card-title text-lg font-semibold">Start the Clock</h2>
         <div class="space-y-4">
           <div class="space-y-2">
             <BoomerSelect />

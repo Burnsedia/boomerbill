@@ -89,8 +89,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-2">
-    <div class="alert border border-primary/40 bg-base-300 text-sm">
+  <div class="space-y-3">
+    <div class="alert border border-primary/40 bg-base-300/60 text-sm">
       {{ rankProgressCopy }}
     </div>
 
@@ -115,21 +115,21 @@ onMounted(() => {
     <div
       v-for="item in rows.slice(0, 20)"
       :key="item.username"
-      class="flex items-center justify-between p-3 bg-base-200 rounded-lg"
-      :class="{ 'bg-primary bg-opacity-20 border border-primary': item.rank === 1 }"
+      class="flex items-center justify-between p-3 rounded-lg"
+      :class="item.rank === 1 ? 'bg-primary/15 border border-primary/50' : 'bg-base-200/60'"
     >
       <div class="flex items-center gap-3">
-        <span class="text-lg font-bold w-8">#{{ item.rank }}</span>
+        <span class="text-lg font-bold w-8" :class="item.rank === 1 ? 'text-primary' : 'text-base-content/80'">#{{ item.rank }}</span>
         <div>
           <div class="font-semibold">{{ item.username }}</div>
-          <div class="text-xs opacity-60">{{ item.total_sessions }} sessions</div>
+          <div class="text-xs text-base-content/50">{{ item.total_sessions }} sessions</div>
         </div>
       </div>
 
       <div class="flex items-center gap-3">
         <div class="text-right">
           <div class="font-mono font-bold text-error">${{ (item.total_cost / 100).toFixed(2) }}</div>
-          <div class="text-xs opacity-60">{{ Math.floor(item.total_minutes / 60) }}h {{ item.total_minutes % 60 }}m</div>
+          <div class="text-xs text-base-content/50">{{ Math.floor(item.total_minutes / 60) }}h {{ item.total_minutes % 60 }}m</div>
         </div>
         <button
           v-if="auth.isAuthenticated && item.username !== auth.username"

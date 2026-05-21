@@ -22,7 +22,7 @@ function removeBoomer(id: string) {
   <div class="card bg-base-200 border border-primary shadow-lg">
     <div class="card-body">
       <h3 class="card-title">Boomers</h3>
-      <p class="text-sm opacity-60">The folks who call you when their Wi-Fi "breaks"</p>
+      <p class="text-sm text-base-content/70">The folks who call you when their Wi-Fi "breaks"</p>
 
       <div class="flex gap-2 mt-4">
         <input
@@ -45,7 +45,7 @@ function removeBoomer(id: string) {
         >
           <div>
             <div class="font-semibold">{{ boomer.name }}</div>
-            <div class="text-xs opacity-60">
+            <div class="text-xs text-base-content/70">
               Added {{ new Date(boomer.createdAt).toLocaleDateString() }}
             </div>
           </div>
@@ -58,7 +58,7 @@ function removeBoomer(id: string) {
           </button>
         </div>
 
-        <div v-if="store.boomers.length === 0" class="text-center py-6 text-opacity-60">
+        <div v-if="store.boomers.length === 0" class="text-center py-6 text-base-content/70">
           No boomers yet. Add the folks who keep you busy.
         </div>
       </div>

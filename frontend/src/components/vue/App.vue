@@ -27,9 +27,9 @@ const showAuthPanel = ref(false)
 const hasLocalData = computed(() => store.incidentCount > 0)
 const guestConversionCopy = computed(() => {
   if (!hasLocalData.value) {
-    return 'Start in guest mode instantly, then create a free account when you want sync and community access.'
+    return 'Start in guest mode — create a free account anytime for sync and community.'
   }
-  return `You already tracked ${store.incidentCount} sessions locally. Create a free account to sync everything across devices.`
+  return `You've already tracked ${store.incidentCount} session${store.incidentCount !== 1 ? 's' : ''} locally. Create a free account to sync across devices.`
 })
 const syncLabel = computed(() => {
   if (!auth.isAuthenticated) return ''
@@ -169,7 +169,7 @@ onUnmounted(() => {
                 class="btn btn-sm btn-primary"
                 @click="showAuthPanel = true"
               >
-                Sign in / Create account
+                Sign in
               </button>
             </div>
           </div>
@@ -190,7 +190,7 @@ onUnmounted(() => {
       </div>
 
       <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm">
-        Sync unlock: backup your data, use community follow/replies, and keep history across phones.
+        Sign in to back up your data, join the community, and keep your history across devices.
       </div>
 
       <MobileAppDrive />

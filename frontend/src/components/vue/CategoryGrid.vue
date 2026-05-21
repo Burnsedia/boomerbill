@@ -19,7 +19,7 @@ function getIcon(category: typeof store.categories[0]) {
 
 <template>
   <div class="space-y-2">
-    <label class="label-text">Select Category</label>
+    <label class="label-text">What's broken?</label>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <button

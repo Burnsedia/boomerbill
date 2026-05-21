@@ -29,7 +29,7 @@ function onChange(event: Event) {
 
     <label v-if="store.boomers.length === 0" class="label">
       <span class="label-text-alt text-warning">
-        No boomers added yet. Add them in Settings.
+        No boomers yet — add them in Settings.
       </span>
     </label>
   </div>

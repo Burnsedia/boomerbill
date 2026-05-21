@@ -300,11 +300,11 @@ async function sendRecoveryEmail() {
     <div v-if="auth.isAuthenticated" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-3">
         <h3 class="card-title text-base">Account Recovery</h3>
-        <p class="text-sm opacity-70">
+        <p class="text-sm text-base-content/75">
           Use password recovery anytime if you lose access to your account.
         </p>
-        <p class="text-xs opacity-60">Signed in as @{{ auth.username || 'user' }}</p>
-        <p class="text-xs opacity-60">Recovery email: {{ auth.email || 'Not set' }}</p>
+        <p class="text-xs text-base-content/70">Signed in as @{{ auth.username || 'user' }}</p>
+        <p class="text-xs text-base-content/70">Recovery email: {{ auth.email || 'Not set' }}</p>
         <button class="btn btn-sm btn-secondary w-fit" :disabled="isSendingRecovery" @click="sendRecoveryEmail">
           {{ isSendingRecovery ? 'Sending recovery email...' : 'Send password recovery email' }}
         </button>

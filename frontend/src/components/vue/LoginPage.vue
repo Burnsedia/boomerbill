@@ -31,11 +31,11 @@ const modeTitle = computed(() => {
 const modeDescription = computed(() => {
   switch (mode.value) {
     case 'register':
-      return 'Create your account with username, email, and password.'
+      return 'Create your account — username, email, and password.'
     case 'forgot':
-      return 'Enter your account email and we will send a password reset link.'
+      return 'Enter your email and we'll send a reset link.'
     default:
-      return 'Sign in to sync your BoomerBill data with the backend.'
+      return 'Sign in to sync your BoomerBill data.'
   }
 })
 
@@ -214,7 +214,7 @@ watch(mode, () => {
           </div>
 
           <p class="text-sm opacity-70">{{ modeDescription }}</p>
-          <p class="text-xs opacity-60">Account is optional. You only need one for sync and future online features.</p>
+          <p class="text-xs opacity-60">Accounts are optional — you only need one for sync and community features.</p>
 
           <form class="mt-2 space-y-3" @submit.prevent="submit">
             <label v-if="mode !== 'forgot'" class="form-control w-full gap-1">
@@ -260,9 +260,9 @@ watch(mode, () => {
             <button class="btn btn-primary w-full" type="submit" :disabled="isSubmitting">
               {{ submitLabel }}
             </button>
-            <button class="btn btn-ghost w-full" type="button" @click="emit('close')">
-              Continue with local-only mode
-            </button>
+          <button class="btn btn-ghost w-full" type="button" @click="emit('close')">
+            Continue as guest
+          </button>
           </form>
         </div>
       </div>

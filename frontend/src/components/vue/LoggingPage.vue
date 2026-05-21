@@ -157,7 +157,7 @@ function formatDate(timestamp: number) {
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="card-title">Session Log</h2>
-            <p class="text-sm opacity-60">Every minute of tech support, tallied and ready.</p>
+            <p class="text-sm text-base-content/70">Every minute of tech support, tallied and ready.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button class="btn btn-outline btn-sm" :disabled="rows.length === 0" @click="copySummary">
@@ -182,14 +182,14 @@ function formatDate(timestamp: number) {
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="card-title text-base">Filters</h3>
-            <p class="text-xs opacity-60">Slice the log by date, boomer, or category.</p>
+            <p class="text-xs text-base-content/70">Slice the log by date, boomer, or category.</p>
           </div>
           <button class="btn btn-ghost btn-sm" @click="clearFilters">
             Clear Filters
           </button>
         </div>
 
-        <div class="mt-3 text-xs opacity-60">
+        <div class="mt-3 text-xs text-base-content/70">
           Active filters: {{ activeFilterCount }}
         </div>
 
@@ -298,7 +298,7 @@ function formatDate(timestamp: number) {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <div v-if="rows.length === 0" class="text-sm opacity-60">
+        <div v-if="rows.length === 0" class="text-sm text-base-content/70">
           No sessions logged yet. Head to the Session tab and start the timer.
         </div>
 
@@ -312,14 +312,14 @@ function formatDate(timestamp: number) {
               <div class="card-body gap-2">
                 <div class="flex items-center justify-between">
                   <div class="text-sm font-semibold">{{ session.boomerName }}</div>
-                  <div class="text-xs opacity-70">{{ formatDate(session.endedAt) }}</div>
+                  <div class="text-xs text-base-content/75">{{ formatDate(session.endedAt) }}</div>
                 </div>
-                <div class="text-xs opacity-70">{{ session.categoryName }}</div>
+                <div class="text-xs text-base-content/75">{{ session.categoryName }}</div>
                 <div class="flex items-center justify-between text-sm">
                   <div>{{ session.minutes }} min</div>
                   <div class="font-mono font-semibold">${{ session.cost.toFixed(2) }}</div>
                 </div>
-                <div v-if="session.note" class="text-xs opacity-70">
+                <div v-if="session.note" class="text-xs text-base-content/75">
                   {{ session.note }}
                 </div>
               </div>

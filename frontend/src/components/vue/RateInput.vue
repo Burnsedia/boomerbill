@@ -18,7 +18,7 @@ const rateInput = computed({
 
     <input type="number" class="input input-bordered" v-model.number="rateInput" min="1" />
 
-    <p class="text-xs opacity-60 mt-1">
+    <p class="text-xs text-base-content/70 mt-1">
       Default is average US developer rate.
     </p>
   </div>

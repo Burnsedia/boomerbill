@@ -21,37 +21,37 @@ function formatMinutes(minutes: number) {
 </script>
 
 <template>
-  <div class="card bg-base-200 shadow-lg border border-primary">
-    <div class="card-body">
-      <h3 class="card-title text-lg">Key Insights</h3>
-      <div class="stats stats-vertical lg:stats-horizontal bg-base-200">
-        <div class="stat">
-          <div class="stat-title">Most Expensive Boomer</div>
-          <div class="stat-value text-primary">
-            {{ topBoomer?.boomer.name || 'No damage yet' }}
+  <div class="card-standard rounded-lg shadow-none border-0">
+    <div class="card-body p-0">
+      <h3 class="card-title text-lg font-semibold mb-2">Key Insights</h3>
+      <div class="stats stats-vertical lg:stats-horizontal bg-transparent">
+        <div class="stat px-2">
+          <div class="stat-title text-base-content/60">Most Expensive Boomer</div>
+          <div class="stat-value text-primary text-xl">
+            {{ topBoomer?.boomer.name || 'No victims yet' }}
           </div>
-          <div class="stat-desc">
-            {{ topBoomer ? `$${topBoomer.cost.toFixed(2)} in damage` : 'Start a session to find out' }}
-          </div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">Biggest Time Sink</div>
-          <div class="stat-value text-secondary">
-            {{ topCategory?.category.name || 'No data yet' }}
-          </div>
-          <div class="stat-desc">
-            {{ topCategory ? `${topCategory.minutes}m of damage` : 'Log a session to begin' }}
+          <div class="stat-desc text-base-content/50">
+            {{ topBoomer ? `$${topBoomer.cost.toFixed(2)} drained` : 'Add a session to unlock' }}
           </div>
         </div>
-        <div class="stat">
-          <div class="stat-title">Today's Damage</div>
-          <div class="stat-value text-error">${{ store.todayStats.cost.toFixed(2) }}</div>
-          <div class="stat-desc">{{ store.todayStats.count }} session{{ store.todayStats.count !== 1 ? 's' : '' }}</div>
+        <div class="stat px-2">
+          <div class="stat-title text-base-content/60">Most Time-Wasting Category</div>
+          <div class="stat-value text-secondary text-xl">
+            {{ topCategory?.category.name || 'No chaos yet' }}
+          </div>
+          <div class="stat-desc text-base-content/50">
+            {{ topCategory ? `${topCategory.minutes}m lost` : 'Log something to begin' }}
+          </div>
         </div>
-        <div class="stat">
-          <div class="stat-title">Average Session Time</div>
-          <div class="stat-value">{{ formatMinutes(avgSessionMinutes) }}</div>
-          <div class="stat-desc">{{ store.incidentCount }} total session{{ store.incidentCount !== 1 ? 's' : '' }}</div>
+        <div class="stat px-2">
+          <div class="stat-title text-base-content/60">Today's Damage</div>
+          <div class="stat-value text-error text-xl">${{ store.todayStats.cost.toFixed(2) }}</div>
+          <div class="stat-desc text-base-content/50">{{ store.todayStats.count }} incident{{ store.todayStats.count !== 1 ? 's' : '' }}</div>
+        </div>
+        <div class="stat px-2">
+          <div class="stat-title text-base-content/60">Average Session Time</div>
+          <div class="stat-value text-xl">{{ formatMinutes(avgSessionMinutes) }}</div>
+          <div class="stat-desc text-base-content/50">{{ store.incidentCount }} session{{ store.incidentCount !== 1 ? 's' : '' }}</div>
         </div>
       </div>
     </div>

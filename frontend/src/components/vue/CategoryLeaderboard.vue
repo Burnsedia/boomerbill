@@ -20,7 +20,7 @@ function getIcon(category: typeof store.categories[0]) {
 <template>
   <div class="space-y-2">
     <div v-if="store.categoryLeaderboard.length === 0" class="text-center py-8 text-opacity-60">
-      No categories with sessions yet.
+      No categories have racked up damage yet.
     </div>
 
     <div
@@ -45,7 +45,7 @@ function getIcon(category: typeof store.categories[0]) {
     </div>
 
     <div v-if="store.categoryLeaderboard.length > 0" class="text-center text-xs opacity-60 mt-4">
-      {{ store.categoryLeaderboard[0].category.name }} wastes the most time.
+      {{ store.categoryLeaderboard[0].category.name }} racks up the most damage.
     </div>
   </div>
 </template>
