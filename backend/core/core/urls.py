@@ -19,7 +19,10 @@ from django.contrib import admin
 from django.conf import settings
 from django.urls import include, path
 
+from core.health_views import healthz
+
 urlpatterns = [
+    path("healthz", healthz, name="healthz"),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
     path("api/auth/", include("djoser.urls")),

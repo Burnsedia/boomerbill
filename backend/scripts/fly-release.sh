@@ -61,7 +61,7 @@ printf '\n[2/5] Deploying app %s\n' "$APP_NAME"
 fly deploy --app "$APP_NAME"
 
 printf '\n[3/5] Migration step\n'
-printf 'Using fly.toml release_command to run migrations during deploy.\n'
+printf 'Migrations run automatically via container entrypoint on each deploy.\n'
 
 printf '\n[4/5] App status\n'
 fly status --app "$APP_NAME"

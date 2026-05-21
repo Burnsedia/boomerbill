@@ -53,7 +53,6 @@ export const useAuthStore = defineStore('auth', () => {
   const username = ref<string | null>(null)
   const email = ref<string | null>(null)
   const hasPaidAccess = ref(false)
-  const apiBaseUrl = getApiBaseUrl()
 
   const isAuthenticated = computed(() => Boolean(token.value))
   const canUseRemote = computed(() => isAuthenticated.value)
@@ -90,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchMe() {
     if (!token.value) return
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/me/`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/auth/users/me/`, {
       headers: {
         ...authHeaders()
       }
@@ -115,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     for (const mode of attempts) {
       const endpoint = mode === 'legacy' ? '/api/auth/token/login/' : '/api/auth/jwt/create/'
-      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+      const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -175,7 +174,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(params: RegisterParams) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/auth/users/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -211,7 +210,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function requestPasswordReset(email: string) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password/`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/auth/users/reset_password/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

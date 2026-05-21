@@ -1,4 +1,10 @@
+import { resolveApiBaseUrl, normalizeUrl } from './apiConfig'
+
+/**
+ * Get the resolved API base URL.
+ * Uses the precedence chain: user override → runtime config → build-time env → hard default.
+ * The URL is normalized (trailing slashes removed).
+ */
 export function getApiBaseUrl(): string {
-  const base = import.meta.env.PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
-  return String(base).replace(/\/$/, '')
+  return normalizeUrl(resolveApiBaseUrl())
 }

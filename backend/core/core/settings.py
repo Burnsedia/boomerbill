@@ -46,6 +46,11 @@ if not DEBUG and _looks_like_placeholder_secret(SECRET_KEY):
         "DJANGO_SECRET_KEY must be set to a real externally managed secret when DJANGO_DEBUG=False"
     )
 
+if not DEBUG and len(SECRET_KEY) < 32:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be at least 32 characters in production"
+    )
+
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG=False")
 
@@ -186,6 +191,11 @@ if ENABLE_JWT_AUTH:
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": tuple(_authentication_classes),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+    "DEFAULT_FILTER_BACKENDS": [
+        "rest_framework.filters.OrderingFilter",
+    ],
 }
 
 DJOSER = {
@@ -223,10 +233,34 @@ CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=False)
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
-if not DEBUG and CORS_ALLOW_CREDENTIALS and not CORS_ALLOWED_ORIGINS:
-    raise ImproperlyConfigured(
-        "CORS_ALLOWED_ORIGINS must be set when CORS_ALLOW_CREDENTIALS=True and DJANGO_DEBUG=False"
-    )
+# ---------------------------------------------------------------------------
+# Production-hardening: require explicit origins when DEBUG=False
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    if not CSRF_TRUSTED_ORIGINS:
+        raise ImproperlyConfigured(
+            "CSRF_TRUSTED_ORIGINS must be set to explicit origins when DJANGO_DEBUG=False"
+        )
+    if not CORS_ALLOWED_ORIGINS:
+        raise ImproperlyConfigured(
+            "CORS_ALLOWED_ORIGINS must be set to explicit origins when DJANGO_DEBUG=False"
+        )
+    # Validate that every CSRF trusted origin uses https (no http in production)
+    for origin in CSRF_TRUSTED_ORIGINS:
+        origin = origin.strip()
+        if origin.startswith("http://"):
+            raise ImproperlyConfigured(
+                f"CSRF_TRUSTED_ORIGINS contains an insecure http:// origin: {origin}. "
+                "Use https:// in production."
+            )
+    # Validate that every CORS origin uses https (no http in production)
+    for origin in CORS_ALLOWED_ORIGINS:
+        origin = origin.strip()
+        if origin.startswith("http://"):
+            raise ImproperlyConfigured(
+                f"CORS_ALLOWED_ORIGINS contains an insecure http:// origin: {origin}. "
+                "Use https:// in production."
+            )
 
 if any(origin.strip() == "*" for origin in CORS_ALLOWED_ORIGINS):
     raise ImproperlyConfigured("Wildcard '*' is not allowed in CORS_ALLOWED_ORIGINS")

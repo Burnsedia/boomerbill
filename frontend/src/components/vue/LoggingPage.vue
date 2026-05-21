@@ -5,17 +5,18 @@ import { useBoomerBill } from './store/boomerbills'
 const store = useBoomerBill()
 
 const rows = computed(() => {
-  return store.filteredSessions
-    .map(session => {
-      const boomer = store.boomers.find(b => b.id === session.boomerId)
-      const category = store.categories.find(c => c.id === session.categoryId)
-      return {
-        ...session,
-        boomerName: boomer?.name || 'Unknown',
-        categoryName: category?.name || 'Unknown'
-      }
-    })
-    .sort((a, b) => b.endedAt - a.endedAt)
+  const start = store.dateRange.start
+  const end = store.dateRange.end
+  const boomerIds = new Set(store.filteredBoomers)
+  const categoryIds = new Set(store.filteredCategories)
+
+  return store.sessionDetails.filter(session => {
+    const afterStart = start === null || session.startedAt >= start
+    const beforeEnd = end === null || session.endedAt <= end
+    const inBoomers = boomerIds.size === 0 || boomerIds.has(session.boomerId)
+    const inCategories = categoryIds.size === 0 || categoryIds.has(session.categoryId)
+    return afterStart && beforeEnd && inBoomers && inCategories
+  })
 })
 
 const datePreset = ref<'all' | 'today' | 'week' | 'month' | 'custom'>('all')

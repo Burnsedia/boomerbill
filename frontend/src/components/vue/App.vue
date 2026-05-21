@@ -12,6 +12,7 @@ import CommunityPage from './CommunityPage.vue'
 import OnboardingModal from './OnboardingModal.vue'
 import LoginPage from './LoginPage.vue'
 import MobileAppDrive from './MobileAppDrive.vue'
+import StatusIndicator from './StatusIndicator.vue'
 
 const pinia = createPinia()
 const app = getCurrentInstance()?.appContext.app
@@ -53,7 +54,7 @@ onMounted(() => {
   <div class="space-y-4 w-full">
     <div v-if="isBooting" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <span class="loading loading-dots loading-md" />
+        <StatusIndicator state="loading" message="Booting up..." />
       </div>
     </div>
 
@@ -100,7 +101,25 @@ onMounted(() => {
               </button>
             </div>
             <div class="flex items-center gap-2">
-              <span v-if="auth.isAuthenticated" class="badge badge-outline badge-sm">{{ syncLabel }}</span>
+              <template v-if="auth.isAuthenticated">
+                <StatusIndicator
+                  v-if="store.syncStatus === 'syncing'"
+                  state="syncing"
+                  message="Syncing..."
+                />
+                <StatusIndicator
+                  v-else-if="store.syncStatus === 'error'"
+                  state="sync-error"
+                  message="Sync error"
+                  action-label="Retry"
+                  @action="store.persist()"
+                />
+                <StatusIndicator
+                  v-else-if="store.syncStatus === 'synced'"
+                  state="synced"
+                  :message="!store.lastSyncedAt ? 'Synced' : `Synced ${new Date(store.lastSyncedAt).toLocaleTimeString()}`"
+                />
+              </template>
               <span v-if="auth.isAuthenticated" class="text-xs opacity-70">@{{ auth.username || 'user' }}</span>
               <button
                 v-if="auth.isAuthenticated"

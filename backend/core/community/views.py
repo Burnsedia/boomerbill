@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Max, Sum
+from django.db.models import Count, Max, Sum, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
@@ -176,10 +176,30 @@ class PublicUserProfileView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, username):
-        target = get_object_or_404(User, username=username)
-        follower_count = Follow.objects.filter(following=target).count()
-        following_count = Follow.objects.filter(follower=target).count()
-        post_count = MessagePost.objects.filter(author=target, is_public=True).count()
+        target = get_object_or_404(
+            User.objects.annotate(
+                follower_count=Subquery(
+                    Follow.objects.filter(following_id=OuterRef("id"))
+                    .values("following_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                following_count=Subquery(
+                    Follow.objects.filter(follower_id=OuterRef("id"))
+                    .values("follower_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                post_count=Subquery(
+                    MessagePost.objects.filter(author_id=OuterRef("id"), is_public=True)
+                    .values("author_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+            ),
+            username=username,
+        )
+
         is_following = False
         if request.user.is_authenticated and request.user.id != target.id:
             is_following = Follow.objects.filter(
@@ -190,9 +210,9 @@ class PublicUserProfileView(APIView):
         return Response(
             {
                 "username": target.username,
-                "follower_count": follower_count,
-                "following_count": following_count,
-                "post_count": post_count,
+                "follower_count": target.follower_count or 0,
+                "following_count": target.following_count or 0,
+                "post_count": target.post_count or 0,
                 "is_following": is_following,
             }
         )
@@ -203,14 +223,26 @@ class PublicBoomerWallView(APIView):
 
     def get(self, request):
         sort = request.query_params.get("sort", "top")
-        rows = list(
-            Boomer.objects.annotate(
-                total_sessions=Count("boomer_sessions"),
-                total_cost=Coalesce(Sum("boomer_sessions__cost"), 0),
-                last_session_at=Max("boomer_sessions__end"),
-            ).filter(total_sessions__gt=0)
-        )
 
+        # Build the base annotated queryset — filter to boomers with sessions.
+        base_qs = Boomer.objects.annotate(
+            total_sessions=Count("boomer_sessions"),
+            total_cost=Coalesce(Sum("boomer_sessions__cost"), 0),
+            last_session_at=Max("boomer_sessions__end"),
+        ).filter(total_sessions__gt=0)
+
+        # Push ordering AND limit into SQL. Only the top-N rows are fetched
+        # from the database, avoiding materializing the entire table.
+        if sort == "new":
+            # Coalesce NULL last_session_at to a distant past so they sort last.
+            qs = base_qs.order_by("-last_session_at")[:100]
+        else:
+            qs = base_qs.order_by("-total_cost")[:100]
+
+        rows = list(qs)
+
+        # Only compute top-category aggregates for the boomers in the final
+        # result set — not for every boomer in the database.
         boomer_ids = [row.id for row in rows]
         top_category_map = {}
         if boomer_ids:
@@ -218,10 +250,14 @@ class PublicBoomerWallView(APIView):
                 Session.objects.filter(boomer_id__in=boomer_ids)
                 .values("boomer_id", "category__name")
                 .annotate(
-                    category_cost=Coalesce(Sum("cost"), 0), category_count=Count("id")
+                    category_cost=Coalesce(Sum("cost"), 0),
+                    category_count=Count("id"),
                 )
                 .order_by(
-                    "boomer_id", "-category_cost", "-category_count", "category__name"
+                    "boomer_id",
+                    "-category_cost",
+                    "-category_count",
+                    "category__name",
                 )
             )
             for item in category_rows:
@@ -229,17 +265,8 @@ class PublicBoomerWallView(APIView):
                 if key not in top_category_map:
                     top_category_map[key] = item["category__name"]
 
-        if sort == "new":
-            rows.sort(
-                key=lambda item: item.last_session_at
-                or datetime.min.replace(tzinfo=timezone.utc),
-                reverse=True,
-            )
-        else:
-            rows.sort(key=lambda item: item.total_cost, reverse=True)
-
         payload = []
-        for index, row in enumerate(rows[:100]):
+        for index, row in enumerate(rows):
             payload.append(
                 {
                     "rank": index + 1,

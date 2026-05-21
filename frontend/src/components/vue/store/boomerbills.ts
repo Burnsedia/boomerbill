@@ -77,6 +77,18 @@ type PullPayload = {
   }>
 }
 
+type TimeWindowStats = {
+  minutes: number
+  cost: number
+  count: number
+}
+
+type TrendResult = {
+  change: number
+  percentChange: number
+  direction: 'up' | 'down' | 'same'
+}
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'wifi', name: 'WiFi Issues', icon: 'wifi', isDefault: true },
   { id: 'printer', name: 'Printer Problems', icon: 'printer', isDefault: true },
@@ -119,14 +131,27 @@ export const useBoomerBill = defineStore('boomerbills', () => {
 
   const isRunning = computed(() => startTime.value !== null)
 
+  // ── #26: Memoized ID maps to replace O(n²) session enrichment ──────────────
+  const boomerIdMap = computed(() => {
+    const map = new Map<string, Boomer>()
+    for (const b of boomers.value) map.set(b.id, b)
+    return map
+  })
+
+  const categoryIdMap = computed(() => {
+    const map = new Map<string, Category>()
+    for (const c of categories.value) map.set(c.id, c)
+    return map
+  })
+
   const selectedBoomer = computed(() => {
     if (!selectedBoomerId.value) return null
-    return boomers.value.find(b => b.id === selectedBoomerId.value) || null
+    return boomerIdMap.value.get(selectedBoomerId.value) || null
   })
 
   const selectedCategory = computed(() => {
     if (!selectedCategoryId.value) return null
-    return categories.value.find(c => c.id === selectedCategoryId.value) || null
+    return categoryIdMap.value.get(selectedCategoryId.value) || null
   })
 
   const currentSessionInfo = computed(() => {
@@ -372,96 +397,117 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     })
   })
 
-  const todayStats = computed(() => {
-    const startOfDay = getStartOfDay(Date.now())
-    const todaySessions = sessions.value.filter(s => s.endedAt >= startOfDay)
-    return todaySessions.reduce(
-      (acc, s) => {
-        acc.minutes += s.minutes
-        acc.cost += s.cost
-        return acc
-      },
-      { minutes: 0, cost: 0, count: todaySessions.length }
-    )
+  // ── #28: Single-pass time-window aggregation ───────────────────────────────
+  // Compute all time-window boundaries once, then do a single pass over sessions
+  // to populate every window simultaneously.
+  const _timeWindowBoundaries = computed(() => {
+    const now = Date.now()
+    return {
+      todayStart: getStartOfDay(now),
+      weekStart: getStartOfWeek(now),
+      monthStart: getStartOfMonth(now),
+      yearStart: getStartOfYear(now),
+      yesterdayStart: getStartOfDay(now - 86400000),
+      yesterdayEnd: getStartOfDay(now),
+      prevWeekStart: getStartOfWeek(now - 7 * 86400000),
+      prevWeekEnd: getStartOfWeek(now),
+      prevMonthStart: getStartOfMonth(new Date(now - 30 * 86400000).getTime()),
+      prevMonthEnd: getStartOfMonth(now),
+      prevYearStart: getStartOfYear(now - 365 * 86400000),
+      prevYearEnd: getStartOfYear(now),
+    }
   })
 
-  const weekStats = computed(() => {
-    const startOfWeek = getStartOfWeek(Date.now())
-    const weekSessions = sessions.value.filter(s => s.endedAt >= startOfWeek)
-    return weekSessions.reduce(
-      (acc, s) => {
-        acc.minutes += s.minutes
-        acc.cost += s.cost
-        return acc
-      },
-      { minutes: 0, cost: 0, count: weekSessions.length }
-    )
+  const _timeWindowStats = computed(() => {
+    const bounds = _timeWindowBoundaries.value
+    const stats: Record<string, TimeWindowStats> = {
+      today: { minutes: 0, cost: 0, count: 0 },
+      week: { minutes: 0, cost: 0, count: 0 },
+      month: { minutes: 0, cost: 0, count: 0 },
+      year: { minutes: 0, cost: 0, count: 0 },
+      yesterday: { minutes: 0, cost: 0, count: 0 },
+      prevWeek: { minutes: 0, cost: 0, count: 0 },
+      prevMonth: { minutes: 0, cost: 0, count: 0 },
+      prevYear: { minutes: 0, cost: 0, count: 0 },
+    }
+
+    for (const s of sessions.value) {
+      const ended = s.endedAt
+      // Current windows (endedAt >= start)
+      if (ended >= bounds.todayStart) {
+        const t = stats.today; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.weekStart) {
+        const t = stats.week; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.monthStart) {
+        const t = stats.month; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.yearStart) {
+        const t = stats.year; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      // Previous windows (endedAt >= prevStart && endedAt < prevEnd)
+      if (ended >= bounds.yesterdayStart && ended < bounds.yesterdayEnd) {
+        const t = stats.yesterday; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.prevWeekStart && ended < bounds.prevWeekEnd) {
+        const t = stats.prevWeek; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.prevMonthStart && ended < bounds.prevMonthEnd) {
+        const t = stats.prevMonth; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+      if (ended >= bounds.prevYearStart && ended < bounds.prevYearEnd) {
+        const t = stats.prevYear; t.minutes += s.minutes; t.cost += s.cost; t.count++
+      }
+    }
+
+    return stats
   })
 
-  const monthStats = computed(() => {
-    const startOfMonth = getStartOfMonth(Date.now())
-    const monthSessions = sessions.value.filter(s => s.endedAt >= startOfMonth)
-    return monthSessions.reduce(
-      (acc, s) => {
-        acc.minutes += s.minutes
-        acc.cost += s.cost
-        return acc
-      },
-      { minutes: 0, cost: 0, count: monthSessions.length }
-    )
-  })
+  const todayStats = computed(() => _timeWindowStats.value.today)
+  const weekStats = computed(() => _timeWindowStats.value.week)
+  const monthStats = computed(() => _timeWindowStats.value.month)
+  const yearStats = computed(() => _timeWindowStats.value.year)
 
-  const yearStats = computed(() => {
-    const startOfYear = getStartOfYear(Date.now())
-    const yearSessions = sessions.value.filter(s => s.endedAt >= startOfYear)
-    return yearSessions.reduce(
-      (acc, s) => {
-        acc.minutes += s.minutes
-        acc.cost += s.cost
-        return acc
-      },
-      { minutes: 0, cost: 0, count: yearSessions.length }
-    )
-  })
-
-  const todayTrend = computed(() => {
-    const yesterdayStart = getStartOfDay(Date.now() - 86400000)
-    const yesterdayEnd = getStartOfDay(Date.now())
-    const yesterdaySessions = sessions.value.filter(s => s.endedAt >= yesterdayStart && s.endedAt < yesterdayEnd)
-    const yesterdayCost = yesterdaySessions.reduce((sum, s) => sum + s.cost, 0)
-    const change = todayStats.value.cost - yesterdayCost
-    const percentChange = yesterdayCost === 0 ? (change > 0 ? 100 : 0) : (change / yesterdayCost) * 100
+  function _buildTrend(current: TimeWindowStats, previous: TimeWindowStats): TrendResult {
+    const change = current.cost - previous.cost
+    const percentChange = previous.cost === 0 ? (change > 0 ? 100 : 0) : (change / previous.cost) * 100
     return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  }
+
+  const todayTrend = computed(() => _buildTrend(todayStats.value, _timeWindowStats.value.yesterday))
+  const weekTrend = computed(() => _buildTrend(weekStats.value, _timeWindowStats.value.prevWeek))
+  const monthTrend = computed(() => _buildTrend(monthStats.value, _timeWindowStats.value.prevMonth))
+  const yearTrend = computed(() => _buildTrend(yearStats.value, _timeWindowStats.value.prevYear))
+
+  // ── #27: Consolidate Dashboard computed pipelines ──────────────────────────
+  // Shared intermediate: firstIncidentAt is computed once and reused.
+  // daysActive, avgPerDay/Week/Year all derive from shared intermediates.
+
+  const firstIncidentAt = computed(() => {
+    if (sessions.value.length === 0) return null
+    return Math.min(...sessions.value.map(s => s.endedAt))
   })
 
-  const weekTrend = computed(() => {
-    const prevWeekStart = getStartOfWeek(Date.now() - 7 * 86400000)
-    const prevWeekEnd = getStartOfWeek(Date.now())
-    const prevWeekSessions = sessions.value.filter(s => s.endedAt >= prevWeekStart && s.endedAt < prevWeekEnd)
-    const prevWeekCost = prevWeekSessions.reduce((sum, s) => sum + s.cost, 0)
-    const change = weekStats.value.cost - prevWeekCost
-    const percentChange = prevWeekCost === 0 ? (change > 0 ? 100 : 0) : (change / prevWeekCost) * 100
-    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  const daysActive = computed(() => {
+    if (!firstIncidentAt.value) return 0
+    const ms = Date.now() - firstIncidentAt.value
+    return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)))
   })
 
-  const monthTrend = computed(() => {
-    const prevMonthStart = getStartOfMonth(new Date(Date.now() - 30 * 86400000).getTime())
-    const prevMonthEnd = getStartOfMonth(Date.now())
-    const prevMonthSessions = sessions.value.filter(s => s.endedAt >= prevMonthStart && s.endedAt < prevMonthEnd)
-    const prevMonthCost = prevMonthSessions.reduce((sum, s) => sum + s.cost, 0)
-    const change = monthStats.value.cost - prevMonthCost
-    const percentChange = prevMonthCost === 0 ? (change > 0 ? 100 : 0) : (change / prevMonthCost) * 100
-    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  const avgPerDay = computed(() => {
+    if (daysActive.value === 0) return 0
+    return totals.value.minutes / daysActive.value
   })
 
-  const yearTrend = computed(() => {
-    const prevYearStart = getStartOfYear(Date.now() - 365 * 86400000)
-    const prevYearEnd = getStartOfYear(Date.now())
-    const prevYearSessions = sessions.value.filter(s => s.endedAt >= prevYearStart && s.endedAt < prevYearEnd)
-    const prevYearCost = prevYearSessions.reduce((sum, s) => sum + s.cost, 0)
-    const change = yearStats.value.cost - prevYearCost
-    const percentChange = prevYearCost === 0 ? (change > 0 ? 100 : 0) : (change / prevYearCost) * 100
-    return { change, percentChange, direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same' }
+  const avgPerWeek = computed(() => avgPerDay.value * 7)
+  const avgPerYear = computed(() => avgPerDay.value * 365)
+
+  const weeklySummary = computed(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const week = sessions.value.filter(s => s.endedAt >= cutoff)
+    const cost = week.reduce((a, s) => a + s.cost, 0)
+    return `You lost $${cost.toFixed(2)} this week.`
   })
 
   const avgSessionTime = computed(() => {
@@ -496,37 +542,13 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     [...sessions.value].sort((a, b) => b.cost - a.cost)
   )
 
-  const firstIncidentAt = computed(() => {
-    if (sessions.value.length === 0) return null
-    return Math.min(...sessions.value.map(s => s.endedAt))
-  })
-
-  const daysActive = computed(() => {
-    if (!firstIncidentAt.value) return 0
-    const ms = Date.now() - firstIncidentAt.value
-    return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)))
-  })
-
-  const avgPerDay = computed(() => {
-    if (daysActive.value === 0) return 0
-    return totals.value.minutes / daysActive.value
-  })
-
-  const avgPerWeek = computed(() => avgPerDay.value * 7)
-  const avgPerYear = computed(() => avgPerDay.value * 365)
-
-  const weeklySummary = computed(() => {
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
-    const week = sessions.value.filter(s => s.endedAt >= cutoff)
-    const cost = week.reduce((a, s) => a + s.cost, 0)
-    return `You lost $${cost.toFixed(2)} this week.`
-  })
-
+  // ── #26: Use ID maps for O(1) lookups in leaderboards & enrichment ─────────
   const boomerLeaderboard = computed(() => {
     const boomerStats = new Map<string, { boomer: Boomer; minutes: number; cost: number; count: number }>()
-    sessions.value.forEach(session => {
-      const boomer = boomers.value.find(b => b.id === session.boomerId)
-      if (!boomer) return
+    const bMap = boomerIdMap.value
+    for (const session of sessions.value) {
+      const boomer = bMap.get(session.boomerId)
+      if (!boomer) continue
       const existing = boomerStats.get(boomer.id)
       if (existing) {
         existing.minutes += session.minutes
@@ -540,15 +562,16 @@ export const useBoomerBill = defineStore('boomerbills', () => {
           count: 1
         })
       }
-    })
+    }
     return Array.from(boomerStats.values()).sort((a, b) => b.cost - a.cost)
   })
 
   const categoryLeaderboard = computed(() => {
     const categoryStats = new Map<string, { category: Category; minutes: number; cost: number; count: number }>()
-    sessions.value.forEach(session => {
-      const category = categories.value.find(c => c.id === session.categoryId)
-      if (!category) return
+    const cMap = categoryIdMap.value
+    for (const session of sessions.value) {
+      const category = cMap.get(session.categoryId)
+      if (!category) continue
       const existing = categoryStats.get(category.id)
       if (existing) {
         existing.minutes += session.minutes
@@ -562,21 +585,19 @@ export const useBoomerBill = defineStore('boomerbills', () => {
           count: 1
         })
       }
-    })
+    }
     return Array.from(categoryStats.values()).sort((a, b) => b.minutes - a.minutes)
   })
 
   const sessionDetails = computed(() => {
+    const bMap = boomerIdMap.value
+    const cMap = categoryIdMap.value
     return [...sessions.value]
-      .map(session => {
-        const boomer = boomers.value.find(b => b.id === session.boomerId)
-        const category = categories.value.find(c => c.id === session.categoryId)
-        return {
-          ...session,
-          boomerName: boomer?.name || 'Unknown',
-          categoryName: category?.name || 'Unknown'
-        }
-      })
+      .map(session => ({
+        ...session,
+        boomerName: bMap.get(session.boomerId)?.name || 'Unknown',
+        categoryName: cMap.get(session.categoryId)?.name || 'Unknown'
+      }))
       .sort((a, b) => b.endedAt - a.endedAt)
   })
 
@@ -587,11 +608,14 @@ export const useBoomerBill = defineStore('boomerbills', () => {
       return `"${formulaSafe.replace(/"/g, '""')}"`
     }
 
+    const bMap = boomerIdMap.value
+    const cMap = categoryIdMap.value
+
     const rows = [
       'id,boomer,category,minutes,cost,startedAt,endedAt,note',
       ...sessions.value.map(s => {
-        const boomer = boomers.value.find(b => b.id === s.boomerId)?.name || 'Unknown'
-        const category = categories.value.find(c => c.id === s.categoryId)?.name || 'Unknown'
+        const boomer = bMap.get(s.boomerId)?.name || 'Unknown'
+        const category = cMap.get(s.categoryId)?.name || 'Unknown'
         return `${s.id},${escapeCsv(boomer)},${escapeCsv(category)},${s.minutes},${s.cost.toFixed(2)},${s.startedAt},${s.endedAt},${escapeCsv(s.note ?? '')}`
       })
     ]
