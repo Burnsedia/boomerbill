@@ -18,16 +18,38 @@ type TokenLoginResponse = {
   auth_token: string
 }
 
+type JwtLoginResponse = {
+  access: string
+  refresh: string
+}
+
 type MeResponse = {
   username?: string
   email?: string
 }
 
-const TOKEN_STORAGE_KEY = 'bb_auth_token'
+type AuthScheme = 'Token' | 'Bearer'
+
+type AuthSession = {
+  scheme: AuthScheme
+  accessToken: string
+  refreshToken?: string | null
+}
+
+const LEGACY_TOKEN_STORAGE_KEY = 'bb_auth_token'
+const AUTH_SESSION_STORAGE_KEY = 'bb_auth_session'
+const AUTH_MODE = String(import.meta.env.PUBLIC_AUTH_MODE || 'dual').trim().toLowerCase()
+
+function getAuthAttemptOrder(): Array<'legacy' | 'jwt'> {
+  if (AUTH_MODE === 'jwt') return ['jwt', 'legacy']
+  if (AUTH_MODE === 'legacy' || AUTH_MODE === 'legacy_token' || AUTH_MODE === 'token') return ['legacy', 'jwt']
+  return ['legacy', 'jwt']
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const boomerStore = useBoomerBill()
-  const token = ref<string | null>(null)
+  const authSession = ref<AuthSession | null>(null)
+  const token = computed(() => authSession.value?.accessToken || null)
   const username = ref<string | null>(null)
   const email = ref<string | null>(null)
   const hasPaidAccess = ref(false)
@@ -36,18 +58,34 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(token.value))
   const canUseRemote = computed(() => isAuthenticated.value)
 
-  function authHeaders(): Record<string, string> {
-    if (!token.value) return {}
-    return { Authorization: `Token ${token.value}` }
+  function authHeaderValue(): string | null {
+    if (!authSession.value) return null
+    return `${authSession.value.scheme} ${authSession.value.accessToken}`
   }
 
-  function persistToken(value: string | null) {
+  function authHeaders(): Record<string, string> {
+    const value = authHeaderValue()
+    if (!value) return {}
+    return { Authorization: value }
+  }
+
+  function persistAuthSession(value: AuthSession | null) {
     if (typeof window === 'undefined') return
+    const storage = window.sessionStorage
+    const fallbackStorage = window.localStorage
+
     if (value) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, value)
+      storage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(value))
+      fallbackStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY)
       return
     }
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    storage.removeItem(AUTH_SESSION_STORAGE_KEY)
+    fallbackStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY)
+  }
+
+  function applyAuthSession(value: AuthSession | null) {
+    authSession.value = value
+    persistAuthSession(value)
   }
 
   async function fetchMe() {
@@ -72,32 +110,50 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(params: LoginParams) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/token/login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(params)
-    })
+    const attempts = getAuthAttemptOrder()
+    let lastErrorMessage = 'Login failed. Check your credentials.'
 
-    if (!response.ok) {
-      let message = 'Login failed. Check your credentials.'
-      try {
-        const payload = await response.json() as { non_field_errors?: string[]; detail?: string }
-        if (payload.non_field_errors?.[0]) {
-          message = payload.non_field_errors[0]
-        } else if (payload.detail) {
-          message = payload.detail
+    for (const mode of attempts) {
+      const endpoint = mode === 'legacy' ? '/api/auth/token/login/' : '/api/auth/jwt/create/'
+      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+
+      if (!response.ok) {
+        try {
+          const payload = await response.json() as { non_field_errors?: string[]; detail?: string }
+          if (payload.non_field_errors?.[0]) {
+            lastErrorMessage = payload.non_field_errors[0]
+          } else if (payload.detail) {
+            lastErrorMessage = payload.detail
+          }
+        } catch {
+          // Ignore payload parsing issues and keep default message.
         }
-      } catch {
-        // Ignore payload parsing issues and keep default message.
+
+        if (response.status === 404 && mode === 'legacy' && attempts.includes('jwt')) {
+          continue
+        }
+        throw new Error(lastErrorMessage)
       }
-      throw new Error(message)
+
+      if (mode === 'legacy') {
+        const data = await response.json() as TokenLoginResponse
+        applyAuthSession({ scheme: 'Token', accessToken: data.auth_token })
+      } else {
+        const data = await response.json() as JwtLoginResponse
+        applyAuthSession({ scheme: 'Bearer', accessToken: data.access, refreshToken: data.refresh })
+      }
+      break
     }
 
-    const data = await response.json() as TokenLoginResponse
-    token.value = data.auth_token
-    persistToken(token.value)
+    if (!token.value) {
+      throw new Error(lastErrorMessage)
+    }
 
     try {
       await fetchMe()
@@ -106,14 +162,15 @@ export const useAuthStore = defineStore('auth', () => {
       email.value = null
     }
 
-    if (token.value) {
+    const header = authHeaderValue()
+    if (header) {
       try {
-        await boomerStore.syncFromCloud(token.value)
-        await boomerStore.syncToCloud(token.value)
+        await boomerStore.syncFromCloud(header)
+        await boomerStore.syncToCloud(header)
       } catch {
         // Keep login successful even if sync is temporarily unavailable.
       }
-      boomerStore.setSyncToken(token.value)
+      boomerStore.setSyncToken(header)
     }
   }
 
@@ -198,41 +255,70 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     if (token.value) {
-      await fetch(`${apiBaseUrl}/api/auth/token/logout/`, {
+      const isLegacyToken = authSession.value?.scheme === 'Token'
+      const hasRefresh = Boolean(authSession.value?.refreshToken)
+      const logoutUrl = isLegacyToken
+        ? `${apiBaseUrl}/api/auth/token/logout/`
+        : `${apiBaseUrl}/api/auth/jwt/blacklist/`
+
+      const body = !isLegacyToken && hasRefresh
+        ? JSON.stringify({ refresh: authSession.value?.refreshToken })
+        : undefined
+
+      await fetch(logoutUrl, {
         method: 'POST',
         headers: {
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
           ...authHeaders()
-        }
+        },
+        body
       }).catch(() => {
         // Ignore network errors during logout and clear local session.
       })
     }
 
-    token.value = null
+    authSession.value = null
     username.value = null
     email.value = null
-    persistToken(null)
+    persistAuthSession(null)
     boomerStore.setSyncToken(null)
   }
 
   async function hydrate() {
     if (typeof window === 'undefined') return
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (!stored) return
+    const storedSession = window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY)
+    if (storedSession) {
+      try {
+        const parsed = JSON.parse(storedSession) as AuthSession
+        if (parsed?.scheme && parsed?.accessToken) {
+          authSession.value = parsed
+        }
+      } catch {
+        persistAuthSession(null)
+      }
+    } else {
+      const legacyToken = window.localStorage.getItem(LEGACY_TOKEN_STORAGE_KEY)
+      if (legacyToken) {
+        authSession.value = { scheme: 'Token', accessToken: legacyToken }
+        persistAuthSession(authSession.value)
+      }
+    }
 
-    token.value = stored
+    if (!authSession.value) return
+
     try {
       await fetchMe()
-      if (token.value) {
-        await boomerStore.syncFromCloud(token.value)
-        await boomerStore.syncToCloud(token.value)
-        boomerStore.setSyncToken(token.value)
+      const header = authHeaderValue()
+      if (header) {
+        await boomerStore.syncFromCloud(header)
+        await boomerStore.syncToCloud(header)
+        boomerStore.setSyncToken(header)
       }
     } catch {
-      token.value = null
+      authSession.value = null
       username.value = null
       email.value = null
-      persistToken(null)
+      persistAuthSession(null)
       boomerStore.setSyncToken(null)
     }
   }

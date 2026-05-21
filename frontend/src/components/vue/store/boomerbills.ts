@@ -994,10 +994,10 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     persist()
   }
 
-  async function syncFromCloud(token: string) {
+  async function syncFromCloud(authHeader: string) {
     const response = await fetch(`${getApiBaseUrl()}/api/sync/pull/`, {
       headers: {
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       }
     })
 
@@ -1014,12 +1014,12 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     }
   }
 
-  async function syncToCloud(token: string) {
+  async function syncToCloud(authHeader: string) {
     const response = await fetch(`${getApiBaseUrl()}/api/sync/push/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       },
       body: JSON.stringify(getSyncPayload())
     })
@@ -1031,16 +1031,16 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     return await response.json() as { created?: number; skipped?: number; total?: number }
   }
 
-  async function shareCategory(token: string, categoryId: string) {
+  async function shareCategory(authHeader: string, categoryId: string) {
     let response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/share/`, {
       method: 'POST',
       headers: {
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       }
     })
     if (response.status === 404) {
-      await syncToCloud(token)
-      await syncFromCloud(token)
+      await syncToCloud(authHeader)
+      await syncFromCloud(authHeader)
       const current = categories.value.find(item => item.id === categoryId)
       if (current) {
         const normalized = normalizeCategoryName(current.name)
@@ -1049,7 +1049,7 @@ export const useBoomerBill = defineStore('boomerbills', () => {
           response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(remote.id)}/share/`, {
             method: 'POST',
             headers: {
-              Authorization: `Token ${token}`
+              Authorization: authHeader
             }
           })
         }
@@ -1066,11 +1066,11 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     persist()
   }
 
-  async function unshareCategory(token: string, categoryId: string) {
+  async function unshareCategory(authHeader: string, categoryId: string) {
     const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/unshare/`, {
       method: 'POST',
       headers: {
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       }
     })
     if (!response.ok) {
@@ -1084,11 +1084,11 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     persist()
   }
 
-  async function importSharedCategory(token: string, categoryId: string) {
+  async function importSharedCategory(authHeader: string, categoryId: string) {
     const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/import_shared/`, {
       method: 'POST',
       headers: {
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       }
     })
     if (!response.ok) {
@@ -1114,11 +1114,11 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     persist()
   }
 
-  async function deleteOrUnimportCategory(token: string, categoryId: string) {
+  async function deleteOrUnimportCategory(authHeader: string, categoryId: string) {
     const response = await fetch(`${getApiBaseUrl()}/api/category/${encodeURIComponent(categoryId)}/remove_or_unimport/`, {
       method: 'POST',
       headers: {
-        Authorization: `Token ${token}`
+        Authorization: authHeader
       }
     })
     if (!response.ok) {
