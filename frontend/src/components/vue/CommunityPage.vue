@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from './store/auth'
 import PublicUserLeaderboard from './PublicUserLeaderboard.vue'
 import StatusIndicator from './StatusIndicator.vue'

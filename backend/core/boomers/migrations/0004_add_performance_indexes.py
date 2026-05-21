@@ -66,7 +66,7 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # --- Follow indexes ---
+        # --- Follow indexes (community app model) ---
         # Hot path: Follow.objects.filter(following=target).count()
         # Used in: PublicUserProfileView (follower_count)
         migrations.AddIndex(
@@ -88,7 +88,7 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # --- MessagePost indexes ---
+        # --- MessagePost indexes (community app model) ---
         # Hot path: MessagePost.objects.filter(is_public=True).order_by("-created_at")
         # Used in: PublicMessagesView
         migrations.AddIndex(
