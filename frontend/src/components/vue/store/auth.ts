@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getApiBaseUrl } from '../lib/api'
+import { getApiBaseUrl, getBackendUnavailableMessage } from '../lib/api'
 import { useBoomerBill } from './boomerbills'
 
 type LoginParams = {
@@ -58,6 +58,14 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(token.value))
   const canUseRemote = computed(() => isAuthenticated.value)
 
+  async function safeFetch(input: string, init?: RequestInit, unavailableMessage?: string) {
+    try {
+      return await fetch(input, init)
+    } catch {
+      throw new Error(unavailableMessage || getBackendUnavailableMessage(apiBaseUrl))
+    }
+  }
+
   function authHeaderValue(): string | null {
     if (!authSession.value) return null
     return `${authSession.value.scheme} ${authSession.value.accessToken}`
@@ -90,11 +98,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchMe() {
     if (!token.value) return
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/me/`, {
+    const response = await safeFetch(`${apiBaseUrl}/api/auth/users/me/`, {
       headers: {
         ...authHeaders()
       }
-    })
+    }, getBackendUnavailableMessage(apiBaseUrl))
 
     if (!response.ok) {
       throw new Error('Could not load profile')
@@ -115,13 +123,13 @@ export const useAuthStore = defineStore('auth', () => {
 
     for (const mode of attempts) {
       const endpoint = mode === 'legacy' ? '/api/auth/token/login/' : '/api/auth/jwt/create/'
-      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+      const response = await safeFetch(`${apiBaseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(params)
-      })
+      }, getBackendUnavailableMessage(apiBaseUrl))
 
       if (!response.ok) {
         try {
@@ -175,13 +183,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(params: RegisterParams) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/`, {
+    const response = await safeFetch(`${apiBaseUrl}/api/auth/users/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(params)
-    })
+    }, getBackendUnavailableMessage(apiBaseUrl))
 
     if (!response.ok) {
       let message = 'Could not create account.'
@@ -211,13 +219,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function requestPasswordReset(email: string) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password/`, {
+    const response = await safeFetch(`${apiBaseUrl}/api/auth/users/reset_password/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ email: email.trim().toLowerCase() })
-    })
+    }, getBackendUnavailableMessage(apiBaseUrl))
 
     if (!response.ok) {
       throw new Error('Could not send password reset email')
@@ -225,13 +233,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function resetPasswordConfirm(uid: string, tokenValue: string, newPassword: string) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password_confirm/`, {
+    const response = await safeFetch(`${apiBaseUrl}/api/auth/users/reset_password_confirm/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ uid, token: tokenValue, new_password: newPassword })
-    })
+    }, getBackendUnavailableMessage(apiBaseUrl))
 
     if (!response.ok) {
       let message = 'Could not reset password.'

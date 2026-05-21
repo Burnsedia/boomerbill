@@ -31,4 +31,13 @@ describe('auth store dual-mode login', () => {
       })
     )
   })
+
+  it('returns helpful message when backend is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    const store = useAuthStore()
+
+    await expect(store.login({ username: 'tester', password: 'secret' })).rejects.toThrow(
+      'Cannot reach backend API at http://localhost:8000.'
+    )
+  })
 })
