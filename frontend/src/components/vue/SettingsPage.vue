@@ -34,13 +34,13 @@ const apiEndpointError = ref('')
 const apiEndpointMessage = ref('')
 const apiTestResult = ref<'idle' | 'testing' | 'success' | 'failure'>('idle')
 const apiTestMessage = ref('')
-const apiSource = ref<'user' | 'runtime' | 'build' | 'default'>('default')
 const isEditingEndpoint = ref(false)
 const pendingEndpoint = ref('')
 
 const isProd = isProductionContext()
 
 const activeEndpoint = computed(() => resolveApiBaseUrl())
+const currentApiSource = computed(() => getApiSource())
 const sourceLabel = computed(() => {
   const labels: Record<string, string> = {
     user: 'User override',
@@ -48,13 +48,13 @@ const sourceLabel = computed(() => {
     build: 'Build-time config',
     default: 'Default'
   }
-  return labels[apiSource.value] || 'Default'
+  return labels[currentApiSource.value] || 'Default'
 })
+const isUserOverride = computed(() => currentApiSource.value === 'user')
 
 onMounted(() => {
   const override = getUserOverride()
   apiEndpointInput.value = override || ''
-  apiSource.value = getApiSource()
 })
 
 function startEditing() {
@@ -109,7 +109,6 @@ function saveEndpoint() {
 
   setUserOverride(url)
   apiEndpointInput.value = url
-  apiSource.value = getApiSource()
   isEditingEndpoint.value = false
   apiEndpointError.value = ''
   apiEndpointMessage.value = 'API endpoint updated successfully.'
@@ -125,7 +124,6 @@ function resetEndpoint() {
   clearUserOverride()
   apiEndpointInput.value = ''
   pendingEndpoint.value = ''
-  apiSource.value = getApiSource()
   isEditingEndpoint.value = false
   apiEndpointError.value = ''
   apiEndpointMessage.value = `API endpoint reset to default: ${HARD_DEFAULT}`
@@ -218,7 +216,7 @@ async function sendRecoveryEmail() {
               Change endpoint
             </button>
             <button
-              v-if="apiSource === 'user'"
+              v-if="isUserOverride"
               class="btn btn-sm btn-ghost"
               @click="resetEndpoint"
             >

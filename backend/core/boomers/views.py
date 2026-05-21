@@ -161,26 +161,16 @@ class CategoryViewSet(ModelViewSet):
 
 
 class BoomerViewSet(ModelViewSet):
+    queryset = Boomer.objects.annotate(
+        total_sessions=Count("boomer_sessions"),
+        total_minutes=Coalesce(Sum("boomer_sessions__minutes"), Value(0)),
+        total_cost=Coalesce(Sum("boomer_sessions__cost"), Value(0)),
+        avg_minutes=Coalesce(Avg("boomer_sessions__minutes"), Value(0.0)),
+        avg_cost=Coalesce(Avg("boomer_sessions__cost"), Value(0.0)),
+        last_session_at=Max("boomer_sessions__end"),
+    )
     serializer_class = BoomerSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-        base = Boomer.objects.all()
-        # Only compute heavy aggregates on detail/retrieve actions.
-        # List calls get a lightweight queryset — aggregates are added
-        # on-demand via get_serializer_context so the serializer can
-        # fall back gracefully, but the main win is avoiding GROUP BY
-        # across the entire Session table on every list request.
-        if self.action == "retrieve":
-            return base.annotate(
-                total_sessions=Count("boomer_sessions"),
-                total_minutes=Coalesce(Sum("boomer_sessions__minutes"), Value(0)),
-                total_cost=Coalesce(Sum("boomer_sessions__cost"), Value(0)),
-                avg_minutes=Coalesce(Avg("boomer_sessions__minutes"), Value(0.0)),
-                avg_cost=Coalesce(Avg("boomer_sessions__cost"), Value(0.0)),
-                last_session_at=Max("boomer_sessions__end"),
-            )
-        return base
 
 
 class SessionViewSet(ModelViewSet):
@@ -209,6 +199,9 @@ class SyncPushView(APIView):
         # ------------------------------------------------------------------
         # 1. Build in-memory maps from payload
         # ------------------------------------------------------------------
+        created = 0
+        skipped = 0
+
         boomer_name_by_id = {}
         for boomer in boomers:
             if isinstance(boomer, dict):
@@ -300,13 +293,9 @@ class SyncPushView(APIView):
         boomers_to_create = []
 
         # ------------------------------------------------------------------
-        # 5. Process sessions — batch resolve and create
+        # 5. First pass: parse & validate sessions, collect missing entities
         # ------------------------------------------------------------------
-        created = 0
-        skipped = 0
-
-        # First pass: resolve all records, collect boomer names to create
-        resolved_sessions = []
+        parsed_sessions = []
         for record in sessions:
             if not isinstance(record, dict):
                 skipped += 1
@@ -317,50 +306,21 @@ class SyncPushView(APIView):
             boomer_name = boomer_name_by_id.get(boomer_ref)
             category_payload = category_by_id.get(category_ref)
 
-            # Fallback: look up category by ID in DB (already preloaded)
+            # Fallback: look up category by ID in preloaded maps
             if not category_payload and category_ref:
-                # Check user-owned categories first, then default
-                for cat_map in (user_categories.values(), default_categories.values()):
-                    for c in cat_map:
-                        if c.id == category_ref:
-                            category_payload = {
-                                "name": c.name,
-                                "normalized_name": c.normalized_name,
-                                "is_default": c.is_default,
-                                "is_shared": c.is_shared,
-                            }
-                            break
-                    if category_payload:
+                for c in list(user_categories.values()) + list(default_categories.values()):
+                    if c.id == category_ref:
+                        category_payload = {
+                            "name": c.name,
+                            "normalized_name": c.normalized_name,
+                            "is_default": c.is_default,
+                            "is_shared": c.is_shared,
+                        }
                         break
 
             if not boomer_name or not category_payload:
                 skipped += 1
                 continue
-
-            # Resolve boomer (create later if missing)
-            if boomer_name not in boomer_name_map:
-                if boomer_name not in {b.name for b in boomers_to_create}:
-                    boomers_to_create.append(Boomer(name=boomer_name, cost=0))
-            boomer = boomer_name_map.get(boomer_name)
-
-            # Resolve category from preloaded maps
-            norm = category_payload["normalized_name"]
-            category = user_categories.get(norm) or default_categories.get(norm)
-            if not category:
-                # Create on-the-fly (shouldn't happen if category processing was correct,
-                # but handle edge case where category wasn't in payload)
-                category = Category(
-                    id=f"category-{uuid.uuid4().hex[:12]}",
-                    name=category_payload["name"],
-                    is_default=bool(category_payload["is_default"]),
-                    owner=None if category_payload["is_default"] else request.user,
-                    is_shared=bool(category_payload.get("is_shared", False)),
-                )
-                categories_to_create.append(category)
-                if category.owner is None:
-                    default_categories[norm] = category
-                else:
-                    user_categories[norm] = category
 
             # Parse timestamps
             started_at = record.get("startedAt")
@@ -389,10 +349,9 @@ class SyncPushView(APIView):
             except (TypeError, ValueError):
                 cost_value = 0
 
-            resolved_sessions.append({
+            parsed_sessions.append({
                 "boomer_name": boomer_name,
-                "boomer": boomer,  # may be None if new
-                "category": category,
+                "category_payload": category_payload,
                 "minutes": minutes,
                 "cost": max(0, cost_value),
                 "start": started_dt,
@@ -400,33 +359,76 @@ class SyncPushView(APIView):
                 "note": note,
             })
 
-        # Batch-create missing boomers
+        # Collect boomer names that need creating
+        for ps in parsed_sessions:
+            if ps["boomer_name"] not in boomer_name_map:
+                if ps["boomer_name"] not in {b.name for b in boomers_to_create}:
+                    boomers_to_create.append(Boomer(name=ps["boomer_name"], cost=0))
+
+        # Collect categories that need creating (session fallback path)
+        fallback_categories = []
+        for ps in parsed_sessions:
+            norm = ps["category_payload"]["normalized_name"]
+            if norm not in user_categories and norm not in default_categories:
+                if norm not in {c.normalized_name for c in fallback_categories}:
+                    fallback_categories.append(
+                        Category(
+                            id=f"category-{uuid.uuid4().hex[:12]}",
+                            name=ps["category_payload"]["name"],
+                            is_default=bool(ps["category_payload"]["is_default"]),
+                            owner=None if ps["category_payload"]["is_default"] else request.user,
+                            is_shared=bool(ps["category_payload"].get("is_shared", False)),
+                        )
+                    )
+
+        # ------------------------------------------------------------------
+        # 6. Batch-create missing boomers and categories, then re-fetch
+        # ------------------------------------------------------------------
         if boomers_to_create:
             Boomer.objects.bulk_create(boomers_to_create, ignore_conflicts=True)
-            # Refresh boomer map
-            for b in boomers_to_create:
-                boomer_name_map[b.name] = b
+        if fallback_categories:
+            Category.objects.bulk_create(fallback_categories, ignore_conflicts=True)
 
-        # Batch-create missing categories from session fallback
-        if categories_to_create:
-            # Re-bulk-create only those not yet saved (no pk)
-            unsaved = [c for c in categories_to_create if c.pk is None]
-            if unsaved:
-                Category.objects.bulk_create(unsaved, ignore_conflicts=True)
-                for c in unsaved:
-                    if c.owner is None:
-                        default_categories[c.normalized_name] = c
-                    else:
-                        user_categories[c.normalized_name] = c
+        # Re-fetch to get real PKs (bulk_create doesn't populate PKs with
+        # ignore_conflicts on SQLite). Still O(1) queries each.
+        boomer_name_map = {b.name: b for b in Boomer.objects.all()}
+        user_categories = {
+            c.normalized_name: c
+            for c in Category.objects.filter(owner=request.user)
+        }
+        default_categories = {
+            c.normalized_name: c
+            for c in Category.objects.filter(owner=None)
+        }
 
-        # Deduplicate resolved sessions by their unique key (same semantics as get_or_create)
-        # Then batch-check which ones already exist in DB
+        # ------------------------------------------------------------------
+        # 7. Resolve sessions with fully-populated maps, then bulk-create
+        # ------------------------------------------------------------------
+        resolved_sessions = []
+        for ps in parsed_sessions:
+            boomer = boomer_name_map.get(ps["boomer_name"])
+            norm = ps["category_payload"]["normalized_name"]
+            category = user_categories.get(norm) or default_categories.get(norm)
+            if not boomer or not category:
+                skipped += 1
+                continue
+
+            resolved_sessions.append({
+                "boomer": boomer,
+                "category": category,
+                "minutes": ps["minutes"],
+                "cost": ps["cost"],
+                "start": ps["start"],
+                "end": ps["end"],
+                "note": ps["note"],
+            })
+
+        # Deduplicate by the same signature the original get_or_create used
         seen_keys = set()
         unique_sessions = []
         for rs in resolved_sessions:
             key = (
-                request.user.id,
-                rs["boomer_name"],
+                rs["boomer"].name,
                 rs["category"].id,
                 rs["minutes"],
                 rs["cost"],
@@ -439,7 +441,7 @@ class SyncPushView(APIView):
                 unique_sessions.append(rs)
 
         if unique_sessions:
-            # Build set of existing session signatures for this user
+            # Batch-check which sessions already exist
             existing_signatures = set(
                 Session.objects.filter(owner=request.user).values_list(
                     "boomer__name",
@@ -454,9 +456,8 @@ class SyncPushView(APIView):
 
             sessions_to_create = []
             for rs in unique_sessions:
-                boomer = boomer_name_map.get(rs["boomer_name"])
                 sig = (
-                    rs["boomer_name"],
+                    rs["boomer"].name,
                     rs["category"].id,
                     rs["minutes"],
                     rs["cost"],
@@ -464,11 +465,11 @@ class SyncPushView(APIView):
                     rs["end"],
                     rs["note"],
                 )
-                if sig not in existing_signatures and boomer:
+                if sig not in existing_signatures:
                     sessions_to_create.append(
                         Session(
                             owner=request.user,
-                            boomer=boomer,
+                            boomer=rs["boomer"],
                             category=rs["category"],
                             minutes=rs["minutes"],
                             cost=rs["cost"],

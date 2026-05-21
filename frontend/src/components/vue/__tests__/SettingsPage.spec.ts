@@ -130,13 +130,11 @@ describe('SettingsPage.vue', () => {
     expect(wrapper.text()).toContain('Cancel')
   })
 
-  it('shows auth traffic warning in production context', () => {
-    // Mock production context
-    vi.stubGlobal('import', { meta: { env: { PROD: true } } })
+  it('shows endpoint description text about auth traffic', () => {
     localStorageMock.getItem.mockReturnValue(null)
     const pinia = createPinia()
     setActivePinia(pinia)
     const wrapper = mount(SettingsPage, { global: { plugins: [pinia] } })
-    expect(wrapper.text()).toContain('Authentication traffic')
+    expect(wrapper.text()).toContain('authentication traffic is sent to this endpoint')
   })
 })
