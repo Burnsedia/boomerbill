@@ -91,6 +91,12 @@ npx vitest
 
 ---
 
+## Agent Workflow
+
+For Issue 43 auth-hardening coordination, use `AGENT_LAUNCH_PLAYBOOK.md`.
+
+---
+
 ## State Management
 
 All app state lives in a single Pinia store:
