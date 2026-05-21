@@ -1,6 +1,6 @@
 # Generated manually for performance optimization (#15)
 # Add targeted indexes for hot query paths on Session table.
-# Follow and MessagePost indexes are in community/migrations/0003_add_performance_indexes.py
+# Follow and MessagePost indexes moved to community migration.
 
 from django.db import migrations, models
 
