@@ -1,5 +1,16 @@
 # Decision Log
 
+## 2026-05-21 - Exclude generated artifacts from source control
+
+- Decision: Treat Python bytecode, local sqlite databases, frontend build output, and dependency folders as untracked local artifacts.
+- Context: Issues 18 and 32 address noisy diffs, slower reviews, and unstable build/deploy contexts caused by generated files.
+- Change:
+  - Add root, backend, frontend, and backend Docker ignore rules for generated artifacts.
+  - Remove tracked backend bytecode and local sqlite artifacts from the git index without deleting local files.
+  - Keep frontend dependency and build output folders out of normal git workflows.
+- Rationale: Reviews, CI, and deploy contexts should focus on source/configuration changes rather than machine-generated artifacts.
+- Impact: Running backend commands/tests or frontend install/build workflows should no longer create review noise from generated files.
+
 ## 2026-05-21 - Add HTTP/TLS security hardening baseline
 
 - Decision: Enable a Django HTTP/TLS hardening baseline by default when `DJANGO_DEBUG=False` while keeping each deployment-sensitive control configurable by environment.

@@ -2,6 +2,13 @@
 
 ## 2026-05-21
 
+### Repository hygiene cleanup
+
+- Worked issues `#18` and `#32` to keep generated artifacts out of source control.
+- Python bytecode, local sqlite databases, frontend dependency folders, and frontend build output are ignored as local artifacts.
+- Removed generated backend artifacts from the tracked index without deleting source files.
+- Updated backend deploy-context ignores so Docker builds stay focused on backend source and runtime inputs.
+
 ### Security hardening baseline
 
 - Worked issue `#45` on a dedicated branch to make production HTTP/TLS behavior explicit in Django settings.

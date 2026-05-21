@@ -38,6 +38,12 @@ When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
 
 Local development remains functional without `DATABASE_URL`; sqlite is used by default.
 
+## Repo Hygiene
+
+Generated local artifacts are intentionally ignored. After running backend commands, tests, frontend installs, or frontend builds, `git status` should not show Python bytecode, frontend dependency folders, frontend build output, or local sqlite databases.
+
+If generated files appear in `git status`, update ignore rules or remove the files from the git index without deleting source files.
+
 ## Auth migration mode (legacy token + JWT)
 
 Backend supports dual-mode auth for a safe migration path:
