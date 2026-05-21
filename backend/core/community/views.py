@@ -176,10 +176,30 @@ class PublicUserProfileView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, username):
-        target = get_object_or_404(User, username=username)
-        follower_count = Follow.objects.filter(following=target).count()
-        following_count = Follow.objects.filter(follower=target).count()
-        post_count = MessagePost.objects.filter(author=target, is_public=True).count()
+        target = get_object_or_404(
+            User.objects.annotate(
+                follower_count=Subquery(
+                    Follow.objects.filter(following_id=OuterRef("id"))
+                    .values("following_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                following_count=Subquery(
+                    Follow.objects.filter(follower_id=OuterRef("id"))
+                    .values("follower_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+                post_count=Subquery(
+                    MessagePost.objects.filter(author_id=OuterRef("id"), is_public=True)
+                    .values("author_id")
+                    .annotate(count=Count("id"))
+                    .values("count")
+                ),
+            ),
+            username=username,
+        )
+
         is_following = False
         if request.user.is_authenticated and request.user.id != target.id:
             is_following = Follow.objects.filter(
@@ -190,9 +210,9 @@ class PublicUserProfileView(APIView):
         return Response(
             {
                 "username": target.username,
-                "follower_count": follower_count,
-                "following_count": following_count,
-                "post_count": post_count,
+                "follower_count": target.follower_count or 0,
+                "following_count": target.following_count or 0,
+                "post_count": target.post_count or 0,
                 "is_following": is_following,
             }
         )
