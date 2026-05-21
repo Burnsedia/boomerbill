@@ -1,5 +1,18 @@
 # Devlog for BoomerBill
 
+## 2026-05-21 23:35
+
+### docs/build-mode
+
+- Updated password reset setup documentation across required project logs:
+  - `backend/DECISION_LOG.md`: added decision record for reset URL contract and environment override strategy.
+  - `backend/CHANGELOG.md`: added password reset setup changelog section with endpoints, config, and verification notes.
+  - `DEVLOG.md`: recorded this documentation pass.
+- Scope was documentation-only and reflects existing implementation:
+  - backend Djoser reset endpoints,
+  - `PASSWORD_RESET_CONFIRM_URL` default/override behavior,
+  - Fly secret + runbook setup expectations.
+
 ## 2026-05-21 23:10
 
 ### docs/build-mode

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-21 (Password reset setup documentation)
+
+### Changed
+- Documented password reset setup using the existing backend/frontend implementation:
+  - Djoser reset endpoints in use:
+    - `POST /api/auth/users/reset_password/`
+    - `POST /api/auth/users/reset_password_confirm/`
+  - Configurable reset confirmation route via `PASSWORD_RESET_CONFIRM_URL` with default `reset-password?uid={uid}&token={token}` in backend settings.
+  - Fly secret/runbook setup includes `PASSWORD_RESET_CONFIRM_URL` so production reset links resolve to the frontend route.
+
+### Why
+- Password reset depends on a correct backend-to-frontend URL contract.
+- Explicit configuration and verification steps reduce reset-link failures during deploys.
+
+### Verification Notes
+- Trigger reset request and complete confirmation flow using the documented endpoints.
+- Confirm reset mail activity in configured SMTP provider and validate link lands on `/reset-password` route.
+
 ## 2026-05-21 (Connectivity/Auth/PWA issue review)
 
 ### Confirmed Fixes

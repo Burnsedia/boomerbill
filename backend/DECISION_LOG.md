@@ -1,5 +1,21 @@
 # Decision Log
 
+## 2026-05-21 - Standardize password reset URL contract and deployment setup
+
+- Decision: Keep Djoser password reset confirmation URL configurable via `PASSWORD_RESET_CONFIRM_URL`, with a safe default of `reset-password?uid={uid}&token={token}`.
+- Context: Password reset requires backend-generated links to match the frontend route contract across local and production environments.
+- Change:
+  - Backend setting uses `env("PASSWORD_RESET_CONFIRM_URL", default="reset-password?uid={uid}&token={token}")`.
+  - Deployment/runbook docs require setting `PASSWORD_RESET_CONFIRM_URL` in Fly secrets.
+  - Reset flow is documented against Djoser endpoints:
+    - `POST /api/auth/users/reset_password/`
+    - `POST /api/auth/users/reset_password_confirm/`
+- Rationale: A documented default with environment override prevents broken reset links while keeping routing flexible per environment.
+- Impact:
+  - Local environments work without extra reset URL configuration.
+  - Production can pin reset links to the exact frontend route shape.
+  - Password reset setup is explicit in ops docs and easier to verify.
+
 ## 2026-05-21 - Standardize local frontend↔backend connectivity defaults
 
 - Decision: Keep frontend local API default as `http://localhost:8000` and explicitly document per-environment API base URL overrides.
