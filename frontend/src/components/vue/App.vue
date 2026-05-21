@@ -54,7 +54,7 @@ onMounted(() => {
   <div class="space-y-4 w-full">
     <div v-if="isBooting" class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
-        <span class="loading loading-dots loading-md" />
+        <StatusIndicator state="loading" message="Booting up..." />
       </div>
     </div>
 
