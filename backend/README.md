@@ -27,6 +27,10 @@ When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
 - If `EMAIL_PROVIDER=smtp`, `EMAIL_HOST_PASSWORD` must be set.
 - `DATABASE_URL` should be set to Postgres in production.
 - `DATABASE_SSL_REQUIRE=True` enables `sslmode=require` for Postgres.
+- `SECURE_SSL_REDIRECT=True` enforces HTTPS after TLS/proxy headers are configured.
+- `SECURE_HSTS_SECONDS` enables HSTS in production; increase gradually after validating HTTPS on every served host.
+- Keep `SECURE_HSTS_INCLUDE_SUBDOMAINS=False` and `SECURE_HSTS_PRELOAD=False` until every subdomain is HTTPS-ready and preload submission is intentional.
+- `SECURE_CONTENT_TYPE_NOSNIFF=True` and `SECURE_REFERRER_POLICY=same-origin` provide baseline browser hardening.
 - At least one auth mode must be enabled: `ENABLE_LEGACY_TOKEN_AUTH` or `ENABLE_JWT_AUTH`.
 - `JWT_BLACKLIST_AFTER_ROTATION=True` requires `JWT_ROTATE_REFRESH_TOKENS=True`.
 - Wildcard CORS is blocked (`*` is not allowed in `CORS_ALLOWED_ORIGINS`).

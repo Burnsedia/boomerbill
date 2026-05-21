@@ -1,5 +1,14 @@
 # Devlog for BoomerBill
 
+## 2026-05-21
+
+### Security hardening baseline
+
+- Worked issue `#45` on a dedicated branch to make production HTTP/TLS behavior explicit in Django settings.
+- Added environment-configurable controls for HTTPS redirect, HSTS, MIME-sniffing protection, and referrer policy.
+- Kept HSTS subdomain and preload settings opt-in because they depend on deployment-wide HTTPS readiness.
+- Updated backend decision and changelog docs so deployment operators can see the rollout and rollback path.
+
 ## 05/03/2026
 
 - **Feat:** setup basic auth with djoser with default abstract user model

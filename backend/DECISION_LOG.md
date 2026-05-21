@@ -1,5 +1,21 @@
 # Decision Log
 
+## 2026-05-21 - Add HTTP/TLS security hardening baseline
+
+- Decision: Enable a Django HTTP/TLS hardening baseline by default when `DJANGO_DEBUG=False` while keeping each deployment-sensitive control configurable by environment.
+- Context: Issue 45 requires production deployments to enforce secure transport and browser security headers without breaking local development.
+- Change:
+  - Add `SECURE_SSL_REDIRECT` with a production default of `True`.
+  - Add HSTS controls: `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, and `SECURE_HSTS_PRELOAD`.
+  - Add `SECURE_CONTENT_TYPE_NOSNIFF` and `SECURE_REFERRER_POLICY` defaults.
+  - Document the new knobs in `.env.example` and backend production security requirements.
+- Rationale: Transport security depends on predictable Django defaults plus explicit operator control for proxy/TLS and HSTS rollout readiness.
+- Impact:
+  - Production defaults redirect HTTP to HTTPS and emit baseline browser security headers.
+  - Local development keeps HSTS disabled and avoids HTTPS redirect unless explicitly enabled.
+  - Operators must confirm TLS-terminating proxy behavior before enabling strict production settings.
+- Rollback plan: override `SECURE_SSL_REDIRECT=False` and `SECURE_HSTS_SECONDS=0` while correcting deployment TLS/proxy configuration.
+
 ## 2026-05-21 - Adopt dual-mode auth migration (legacy token + JWT)
 
 - Decision: Run a phased migration using dual-mode auth as the default (`AUTH_MODE=dual`).
