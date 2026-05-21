@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import environ
 from django.core.exceptions import ImproperlyConfigured
@@ -188,15 +189,31 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": tuple(_authentication_classes),
 }
 
+PASSWORD_RESET_CONFIRM_URL = env(
+    "PASSWORD_RESET_CONFIRM_URL",
+    default="reset-password?uid={uid}&token={token}",
+).strip()
+
+if "{uid}" not in PASSWORD_RESET_CONFIRM_URL or "{token}" not in PASSWORD_RESET_CONFIRM_URL:
+    raise ImproperlyConfigured(
+        "PASSWORD_RESET_CONFIRM_URL must contain both {uid} and {token} placeholders"
+    )
+
+parsed_password_reset_confirm_url = urlparse(PASSWORD_RESET_CONFIRM_URL)
+if (
+    parsed_password_reset_confirm_url.scheme
+    or parsed_password_reset_confirm_url.netloc
+):
+    raise ImproperlyConfigured(
+        "PASSWORD_RESET_CONFIRM_URL must be relative (no scheme or host)"
+    )
+
 DJOSER = {
     "SERIALIZERS": {
         "user_create": "users.serializers.EmailRequiredUserCreateSerializer",
     },
     "LOGIN_FIELD": "username",
-    "PASSWORD_RESET_CONFIRM_URL": env(
-        "PASSWORD_RESET_CONFIRM_URL",
-        default="reset-password?uid={uid}&token={token}",
-    ),
+    "PASSWORD_RESET_CONFIRM_URL": PASSWORD_RESET_CONFIRM_URL,
 }
 
 if not ENABLE_LEGACY_TOKEN_AUTH:
@@ -264,6 +281,9 @@ SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="Lax")
 CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax")
 
 email_provider = env("EMAIL_PROVIDER", default="console").strip().lower()
+if email_provider not in {"console", "smtp"}:
+    raise ImproperlyConfigured("EMAIL_PROVIDER must be one of: console, smtp")
+
 if email_provider == "smtp":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = env("EMAIL_HOST", default="")
@@ -274,6 +294,21 @@ if email_provider == "smtp":
     EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
     EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
+    if EMAIL_USE_TLS and EMAIL_USE_SSL:
+        raise ImproperlyConfigured(
+            "EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be True when EMAIL_PROVIDER=smtp"
+        )
+
+    if not DEBUG and not EMAIL_HOST.strip():
+        raise ImproperlyConfigured(
+            "EMAIL_HOST must be set when EMAIL_PROVIDER=smtp and DJANGO_DEBUG=False"
+        )
+
+    if not DEBUG and not EMAIL_HOST_USER.strip():
+        raise ImproperlyConfigured(
+            "EMAIL_HOST_USER must be set when EMAIL_PROVIDER=smtp and DJANGO_DEBUG=False"
+        )
+
     if not DEBUG and not EMAIL_HOST_PASSWORD.strip():
         raise ImproperlyConfigured(
             "EMAIL_HOST_PASSWORD must be set when EMAIL_PROVIDER=smtp and DJANGO_DEBUG=False"
@@ -282,3 +317,8 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="BoomerBill <noreply@boomerbill.net>")
+
+if not DEBUG and "@" not in DEFAULT_FROM_EMAIL:
+    raise ImproperlyConfigured(
+        "DEFAULT_FROM_EMAIL must contain a mailbox address when DJANGO_DEBUG=False"
+    )

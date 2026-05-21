@@ -40,6 +40,9 @@ When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
 - `DJANGO_SECRET_KEY` must be set to a real secret.
 - `DJANGO_ALLOWED_HOSTS` must be explicitly set (comma-separated list).
 - If `EMAIL_PROVIDER=smtp`, `EMAIL_HOST_PASSWORD` must be set.
+- `PASSWORD_RESET_CONFIRM_URL` must remain a relative path/query and include both `{uid}` and `{token}`.
+- `EMAIL_USE_TLS` and `EMAIL_USE_SSL` cannot both be true.
+- `DEFAULT_FROM_EMAIL` must contain an `@` mailbox value in production.
 - `DATABASE_URL` should be set to Postgres in production.
 - `DATABASE_SSL_REQUIRE=True` enables `sslmode=require` for Postgres.
 - At least one auth mode must be enabled: `ENABLE_LEGACY_TOKEN_AUTH` or `ENABLE_JWT_AUTH`.
@@ -85,6 +88,12 @@ DJANGO_DEBUG=False DJANGO_SECRET_KEY=replace-with-strong-secret DJANGO_ALLOWED_H
 
 # Fails: smtp configured without SMTP password
 DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com EMAIL_PROVIDER=smtp EMAIL_HOST=smtp.sendgrid.net EMAIL_HOST_PASSWORD= uv run python manage.py check
+
+# Fails: unsafe reset URL host override (must be relative)
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com PASSWORD_RESET_CONFIRM_URL=https://evil.test/reset?uid={uid}\&token={token} uv run python manage.py check
+
+# Fails: mutually exclusive SMTP transport flags
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com EMAIL_PROVIDER=smtp EMAIL_HOST=smtp.sendgrid.net EMAIL_HOST_USER=apikey EMAIL_HOST_PASSWORD=real EMAIL_USE_TLS=True EMAIL_USE_SSL=True uv run python manage.py check
 
 # Passes: local dev defaults (sqlite)
 DJANGO_DEBUG=True uv run python manage.py check
@@ -165,6 +174,7 @@ This sets secrets, deploys, runs migrations, and verifies migration state in one
 2. Trigger password reset from app settings or `/api/auth/users/reset_password/`.
 3. Confirm SendGrid activity shows sent mail.
 4. Open reset link and complete `/reset-password` flow.
+5. Confirm reset URL host matches `PUBLIC_DOMAIN` (no third-party host in the link).
 
 ### DNS for deliverability (Netlify DNS)
 
