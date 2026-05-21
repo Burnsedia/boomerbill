@@ -35,7 +35,7 @@ const liveCost = computed(() =>
 
 function handleStart() {
   if (!canStart.value) {
-    alert('Select a boomer and category first.')
+    alert('Pick a boomer and a category before starting the clock.')
     return
   }
   store.start()
@@ -80,7 +80,7 @@ function handleStop() {
   </div>
 
   <p v-if="store.startTime" class="text-xs text-warning mt-2">
-    You are currently losing money.
+    Timer running — the meter is ticking.
   </p>
 
 </template>

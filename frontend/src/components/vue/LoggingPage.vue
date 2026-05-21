@@ -157,7 +157,7 @@ function formatDate(timestamp: number) {
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="card-title">Session Log</h2>
-            <p class="text-sm opacity-60">All recorded tech support sessions.</p>
+            <p class="text-sm opacity-60">Every minute of tech support, tallied and ready.</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button class="btn btn-outline btn-sm" :disabled="rows.length === 0" @click="copySummary">
@@ -299,7 +299,7 @@ function formatDate(timestamp: number) {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <div v-if="rows.length === 0" class="text-sm opacity-60">
-          No sessions logged yet. Start a timer on the dashboard to record one.
+          No sessions logged yet. Head to the Session tab and start the timer.
         </div>
 
         <div v-else>

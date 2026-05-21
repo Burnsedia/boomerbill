@@ -28,30 +28,30 @@ function formatMinutes(minutes: number) {
         <div class="stat">
           <div class="stat-title">Most Expensive Boomer</div>
           <div class="stat-value text-primary">
-            {{ topBoomer?.boomer.name || 'No victims yet' }}
+            {{ topBoomer?.boomer.name || 'No damage yet' }}
           </div>
           <div class="stat-desc">
-            {{ topBoomer ? `$${topBoomer.cost.toFixed(2)} drained` : 'Add a session to unlock' }}
+            {{ topBoomer ? `$${topBoomer.cost.toFixed(2)} in damage` : 'Start a session to find out' }}
           </div>
         </div>
         <div class="stat">
-          <div class="stat-title">Most Time-Wasting Category</div>
+          <div class="stat-title">Biggest Time Sink</div>
           <div class="stat-value text-secondary">
-            {{ topCategory?.category.name || 'No chaos yet' }}
+            {{ topCategory?.category.name || 'No data yet' }}
           </div>
           <div class="stat-desc">
-            {{ topCategory ? `${topCategory.minutes}m lost` : 'Log something to begin' }}
+            {{ topCategory ? `${topCategory.minutes}m of damage` : 'Log a session to begin' }}
           </div>
         </div>
         <div class="stat">
           <div class="stat-title">Today's Damage</div>
           <div class="stat-value text-error">${{ store.todayStats.cost.toFixed(2) }}</div>
-          <div class="stat-desc">{{ store.todayStats.count }} incident{{ store.todayStats.count !== 1 ? 's' : '' }}</div>
+          <div class="stat-desc">{{ store.todayStats.count }} session{{ store.todayStats.count !== 1 ? 's' : '' }}</div>
         </div>
         <div class="stat">
           <div class="stat-title">Average Session Time</div>
           <div class="stat-value">{{ formatMinutes(avgSessionMinutes) }}</div>
-          <div class="stat-desc">{{ store.incidentCount }} session{{ store.incidentCount !== 1 ? 's' : '' }}</div>
+          <div class="stat-desc">{{ store.incidentCount }} total session{{ store.incidentCount !== 1 ? 's' : '' }}</div>
         </div>
       </div>
     </div>

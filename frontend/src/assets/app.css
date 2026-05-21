@@ -42,6 +42,87 @@
   --noise: 0;
 }
 
+/* ============================================================
+   Visual Hierarchy System
+   ============================================================ */
+
+/* --- Card Hierarchy Levels --- */
+
+/* Primary cards: key sections that demand attention */
+.card-elevated {
+  @apply bg-base-200 border border-primary/60 shadow-lg;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-elevated:hover {
+  @apply border-primary shadow-xl;
+}
+
+/* Standard cards: regular content sections */
+.card-standard {
+  @apply bg-base-200/80 border border-base-300/50 shadow-md;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-standard:hover {
+  @apply border-base-300 shadow-lg;
+}
+
+/* Subtle cards: secondary/supporting content */
+.card-subtle {
+  @apply bg-base-200/50 border border-base-300/30 shadow-sm;
+}
+
+/* Critical cards: active sessions, alerts, urgent info */
+.card-critical {
+  @apply bg-primary/10 border border-primary/70 shadow-lg;
+  box-shadow: 0 0 20px oklch(71% 0.202 349.761 / 0.15);
+}
+
+/* --- Section Spacing Rhythm (8px base) --- */
+.page-sections {
+  @apply space-y-6;
+}
+
+/* --- Typography Hierarchy --- */
+.section-heading {
+  @apply text-lg font-semibold text-base-content;
+}
+
+.subsection-heading {
+  @apply text-base font-medium text-base-content/80;
+}
+
+.meta-text {
+  @apply text-xs text-base-content/60;
+}
+
+/* --- Stat Card Emphasis --- */
+.stat-value-primary {
+  @apply text-2xl font-mono font-bold text-base-content;
+}
+
+.stat-value-critical {
+  @apply text-2xl font-mono font-bold text-error;
+}
+
+/* --- Sub-card / nested item styling --- */
+.sub-card {
+  @apply bg-base-300/60 border border-base-100/40 rounded-lg;
+  transition: background-color 0.15s ease;
+}
+.sub-card:hover {
+  @apply bg-base-300/80;
+}
+
+/* --- Filter / Tab group spacing --- */
+.filter-group {
+  @apply flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap;
+}
+
+/* --- Divider between sections within a card --- */
+.section-divider {
+  @apply border-t border-base-300/40 my-4;
+}
+
 /* Mobile navigation scroll utilities */
 @media (max-width: 639px) {
   .nav-scroll-container {

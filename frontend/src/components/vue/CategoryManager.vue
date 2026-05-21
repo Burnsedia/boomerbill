@@ -102,7 +102,7 @@ function isImportedCategory(category: typeof store.categories[0]) {
   <div class="card bg-base-200 border border-primary shadow-lg">
     <div class="card-body">
       <h3 class="card-title">Categories</h3>
-      <p class="text-sm opacity-60">Types of tech support issues</p>
+      <p class="text-sm text-base-content/70">The usual suspects — WiFi, printers, passwords, and more</p>
 
       <div class="flex gap-2 mt-4">
         <input
@@ -130,7 +130,7 @@ function isImportedCategory(category: typeof store.categories[0]) {
             <span class="text-xl">{{ getIcon(category) }}</span>
             <div>
               <div class="font-semibold">{{ category.name }}</div>
-              <div class="text-xs opacity-60">
+              <div class="text-xs text-base-content/70">
                 {{ category.isDefault ? 'Default category' : 'Custom category' }}
               </div>
             </div>
@@ -152,12 +152,12 @@ function isImportedCategory(category: typeof store.categories[0]) {
               {{ isImportedCategory(category) ? 'Unimport' : 'Delete' }}
             </button>
           </div>
-          <span v-else class="text-xs opacity-40 px-2">Default</span>
+          <span v-else class="text-xs text-base-content/70 px-2">Default</span>
         </div>
       </div>
 
       <div class="mt-6 space-y-2">
-        <h4 class="text-sm font-semibold opacity-70">Shared Community Categories</h4>
+        <h4 class="text-sm font-semibold text-base-content/75">Shared Community Categories</h4>
         <div
           v-for="category in store.sharedCategories"
           :key="`shared-${category.id}`"
@@ -167,7 +167,7 @@ function isImportedCategory(category: typeof store.categories[0]) {
             <span class="text-xl">🌍</span>
             <div>
               <div class="font-semibold">{{ category.name }}</div>
-              <div class="text-xs opacity-60">Shared by the community</div>
+              <div class="text-xs text-base-content/70">Shared by the community</div>
             </div>
           </div>
           <button

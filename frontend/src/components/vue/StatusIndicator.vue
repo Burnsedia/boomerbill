@@ -17,7 +17,7 @@ const emit = defineEmits<{
 
 <template>
   <!-- Loading state -->
-  <div v-if="state === 'loading'" class="flex items-center gap-2 py-4 text-sm opacity-70" role="status" aria-live="polite">
+  <div v-if="state === 'loading'" class="flex items-center gap-2 py-4 text-sm text-base-content/75" role="status" aria-live="polite">
     <span class="loading loading-dots loading-xs" />
     <span>{{ message || 'Loading...' }}</span>
   </div>
@@ -31,7 +31,7 @@ const emit = defineEmits<{
   </div>
 
   <!-- Empty state -->
-  <div v-else-if="state === 'empty'" class="py-8 text-center text-sm opacity-60" role="status">
+  <div v-else-if="state === 'empty'" class="py-8 text-center text-sm text-base-content/70" role="status">
     {{ message || 'Nothing to show yet.' }}
   </div>
 

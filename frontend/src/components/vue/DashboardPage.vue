@@ -183,11 +183,12 @@ const lastSessionSummary = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="card bg-base-200 border border-primary shadow-lg">
+  <div class="page-sections">
+    <!-- Primary: Key Insights - most important overview -->
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title text-lg">Key Insights</summary>
+          <summary class="collapse-title text-lg font-semibold">Key Insights</summary>
           <div class="collapse-content">
             <InsightsCard />
           </div>
@@ -195,13 +196,14 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Primary: Lifetime Damage - core metric -->
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title text-lg">Lifetime Damage</summary>
+          <summary class="collapse-title text-lg font-semibold">Lifetime Damage</summary>
           <div class="collapse-content">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div class="text-xs opacity-60">Last session: {{ lastSessionSummary }}</div>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div class="meta-text">Last session: {{ lastSessionSummary }}</div>
             </div>
             <Totals />
           </div>
@@ -209,39 +211,32 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div v-if="topBoomer || topCategory || store.peakDayThisMonth.day || mostFrequentCategory" class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Secondary: Top Culprits - supporting info -->
+    <div v-if="topBoomer || topCategory || store.peakDayThisMonth.day || mostFrequentCategory" class="card-standard rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title text-lg">Top Culprits</summary>
+          <summary class="collapse-title text-lg font-semibold">Top Culprits</summary>
           <div class="collapse-content">
             <div class="grid gap-3 sm:grid-cols-2">
-              <div v-if="topBoomer" class="card bg-base-300 border border-base-100">
-                <div class="card-body p-4">
-                  <div class="text-xs opacity-60">Top Boomer</div>
-                  <div class="text-sm font-semibold">{{ topBoomer.boomer.name }}</div>
-                  <div class="text-xs opacity-70">${{ topBoomer.cost.toFixed(2) }} total</div>
-                </div>
+              <div v-if="topBoomer" class="sub-card p-4">
+                <div class="meta-text">Top Boomer</div>
+                <div class="text-sm font-semibold mt-1">{{ topBoomer.boomer.name }}</div>
+                <div class="text-xs text-base-content/70 mt-0.5">${{ topBoomer.cost.toFixed(2) }} total</div>
               </div>
-              <div v-if="topCategory" class="card bg-base-300 border border-base-100">
-                <div class="card-body p-4">
-                  <div class="text-xs opacity-60">Top Category</div>
-                  <div class="text-sm font-semibold">{{ topCategory.category.name }}</div>
-                  <div class="text-xs opacity-70">{{ topCategory.minutes }}m total</div>
-                </div>
+              <div v-if="topCategory" class="sub-card p-4">
+                <div class="meta-text">Top Category</div>
+                <div class="text-sm font-semibold mt-1">{{ topCategory.category.name }}</div>
+                <div class="text-xs text-base-content/70 mt-0.5">{{ topCategory.minutes }}m total</div>
               </div>
-              <div v-if="store.peakDayThisMonth.day" class="card bg-base-300 border border-base-100">
-                <div class="card-body p-4">
-                  <div class="text-xs opacity-60">Peak Day This Month</div>
-                  <div class="text-sm font-semibold">{{ store.peakDayThisMonth.day }}</div>
-                  <div class="text-xs opacity-70">${{ store.peakDayThisMonth.cost.toFixed(2) }} total</div>
-                </div>
+              <div v-if="store.peakDayThisMonth.day" class="sub-card p-4">
+                <div class="meta-text">Peak Day This Month</div>
+                <div class="text-sm font-semibold mt-1">{{ store.peakDayThisMonth.day }}</div>
+                <div class="text-xs text-base-content/70 mt-0.5">${{ store.peakDayThisMonth.cost.toFixed(2) }} total</div>
               </div>
-              <div v-if="mostFrequentCategory" class="card bg-base-300 border border-base-100">
-                <div class="card-body p-4">
-                  <div class="text-xs opacity-60">Most Frequent Category</div>
-                  <div class="text-sm font-semibold">{{ mostFrequentCategory.category.name }}</div>
-                  <div class="text-xs opacity-70">{{ mostFrequentCategory.count }} sessions</div>
-                </div>
+              <div v-if="mostFrequentCategory" class="sub-card p-4">
+                <div class="meta-text">Most Frequent Category</div>
+                <div class="text-sm font-semibold mt-1">{{ mostFrequentCategory.category.name }}</div>
+                <div class="text-xs text-base-content/70 mt-0.5">{{ mostFrequentCategory.count }} sessions</div>
               </div>
             </div>
           </div>
@@ -249,16 +244,17 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Secondary: Averages -->
+    <div class="card-standard rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title font-mono text-lg">Averages</summary>
+          <summary class="collapse-title font-mono text-lg font-semibold">Averages</summary>
           <div class="collapse-content">
             <div class="mt-2">
               <div class="label">
-                <span class="label-text">Filter by Boomer</span>
+                <span class="label-text subsection-heading">Filter by Boomer</span>
               </div>
-              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+              <div class="filter-group">
                 <input
                   class="btn btn-sm filter-reset"
                   type="radio"
@@ -279,7 +275,7 @@ const lastSessionSummary = computed(() => {
                 />
               </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <TimeStatCard
                 title="Avg Session Time"
                 :minutes="filteredAvgSessionTimeRounded"
@@ -300,16 +296,17 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Primary: Current Period Damage - actionable timeframe -->
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title font-mono text-lg">Current Period Damage</summary>
+          <summary class="collapse-title font-mono text-lg font-semibold">Current Period Damage</summary>
           <div class="collapse-content">
             <div class="mt-2">
               <div class="label">
-                <span class="label-text">Filter by Boomer</span>
+                <span class="label-text subsection-heading">Filter by Boomer</span>
               </div>
-              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+              <div class="filter-group">
                 <input
                   class="btn btn-sm filter-reset"
                   type="radio"
@@ -330,7 +327,7 @@ const lastSessionSummary = computed(() => {
                 />
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
               <TimeStatCard
                 title="Today's Damage"
                 :minutes="currentTodayStats.minutes"
@@ -355,16 +352,17 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Secondary: Historical Damage -->
+    <div class="card-standard rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title font-mono text-lg">Historical Damage</summary>
+          <summary class="collapse-title font-mono text-lg font-semibold">Historical Damage</summary>
           <div class="collapse-content">
             <div class="mb-4">
               <div class="label">
-                <span class="label-text">Filter by Boomer</span>
+                <span class="label-text subsection-heading">Filter by Boomer</span>
               </div>
-              <div class="filter flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap">
+              <div class="filter-group">
                 <input
                   class="btn btn-sm filter-reset"
                   type="radio"
@@ -410,24 +408,25 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div v-if="recentSessions.length > 0" class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Secondary: Recent Sessions -->
+    <div v-if="recentSessions.length > 0" class="card-standard rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title text-lg">Recent Sessions</summary>
+          <summary class="collapse-title text-lg font-semibold">Recent Sessions</summary>
           <div class="collapse-content">
             <div class="space-y-3">
               <div
                 v-for="session in recentSessions"
                 :key="session.id"
-                class="flex flex-wrap items-center justify-between gap-2 bg-base-300 border border-base-100 rounded-lg p-3"
+                class="sub-card p-3 flex flex-wrap items-center justify-between gap-2"
               >
                 <div>
                   <div class="text-sm font-semibold">{{ session.boomerName }} - {{ session.categoryName }}</div>
-                  <div class="text-xs opacity-70">{{ new Date(session.endedAt).toLocaleString() }}</div>
+                  <div class="meta-text mt-0.5">{{ new Date(session.endedAt).toLocaleString() }}</div>
                 </div>
                 <div class="text-right">
-                  <div class="font-mono font-semibold">${{ session.cost.toFixed(2) }}</div>
-                  <div class="text-xs opacity-70">{{ session.minutes }}m</div>
+                  <div class="font-mono font-semibold text-error">${{ session.cost.toFixed(2) }}</div>
+                  <div class="meta-text">{{ session.minutes }}m</div>
                 </div>
               </div>
             </div>
@@ -436,10 +435,11 @@ const lastSessionSummary = computed(() => {
       </div>
     </div>
 
-    <div class="card bg-base-200 border border-primary shadow-lg">
+    <!-- Secondary: Leaderboards -->
+    <div class="card-standard rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
-          <summary class="collapse-title text-lg">Leaderboards</summary>
+          <summary class="collapse-title text-lg font-semibold">Leaderboards</summary>
           <div class="collapse-content">
             <LeaderboardTabs />
           </div>

@@ -187,7 +187,7 @@ async function sendRecoveryEmail() {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body">
         <h2 class="card-title">Settings</h2>
-        <p class="text-sm opacity-60">Manage your rate, people, and categories.</p>
+        <p class="text-sm text-base-content/70">Set your rate, manage your boomers, and tweak categories.</p>
       </div>
     </div>
 
@@ -195,13 +195,13 @@ async function sendRecoveryEmail() {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-3">
         <h3 class="card-title text-base">API Endpoint</h3>
-        <p class="text-sm opacity-70">
+        <p class="text-sm text-base-content/75">
           Configure the API server URL. All data and authentication traffic is sent to this endpoint.
         </p>
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold opacity-60">Active:</span>
+            <span class="text-xs font-semibold text-base-content/70">Active:</span>
             <code class="text-xs bg-base-300 px-2 py-1 rounded flex-1 truncate">{{ activeEndpoint }}</code>
             <span class="text-xs badge badge-outline badge-sm">{{ sourceLabel }}</span>
           </div>
@@ -282,7 +282,7 @@ async function sendRecoveryEmail() {
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-3">
         <h3 class="card-title text-base">Cloud Sync</h3>
-        <p class="text-sm opacity-70">Sync sessions across devices once you sign in.</p>
+        <p class="text-sm text-base-content/75">Sync sessions across devices once you sign in.</p>
         <button
           class="btn btn-sm w-fit"
           :class="auth.canUseRemote ? 'btn-primary' : 'btn-disabled'"
@@ -291,7 +291,7 @@ async function sendRecoveryEmail() {
         >
           {{ isSyncing ? 'Syncing...' : 'Sync now' }}
         </button>
-        <p v-if="!auth.canUseRemote" class="text-xs opacity-60">Create an account to unlock sync.</p>
+        <p v-if="!auth.canUseRemote" class="text-xs text-base-content/70">Create an account to unlock sync.</p>
         <p v-if="syncMessage" class="text-xs text-success">{{ syncMessage }}</p>
         <p v-if="syncError" class="text-xs text-error">{{ syncError }}</p>
       </div>

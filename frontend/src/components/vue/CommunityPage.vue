@@ -56,6 +56,42 @@ let postsRequestToken = 0
 let wallRequestToken = 0
 let replyControllers = new Map<number, AbortController>()
 
+// Tab scroll indicator state
+const mainTabsRef = ref<HTMLElement | null>(null)
+const mainTabsOverflow = ref({ left: false, right: false })
+const msgTabsRef = ref<HTMLElement | null>(null)
+const msgTabsOverflow = ref({ left: false, right: false })
+const wallTabsRef = ref<HTMLElement | null>(null)
+const wallTabsOverflow = ref({ left: false, right: false })
+
+function checkOverflow(el: HTMLElement | null, state: { left: boolean; right: boolean }) {
+  if (!el) return
+  const isOverflowing = el.scrollWidth > el.clientWidth
+  state.left = isOverflowing && el.scrollLeft > 2
+  state.right = isOverflowing && el.scrollLeft < el.scrollWidth - el.clientWidth - 2
+}
+
+function updateAllOverflows() {
+  checkOverflow(mainTabsRef.value, mainTabsOverflow.value)
+  checkOverflow(msgTabsRef.value, msgTabsOverflow.value)
+  checkOverflow(wallTabsRef.value, wallTabsOverflow.value)
+}
+
+onMounted(() => {
+  loadPosts()
+  loadWall()
+  setTimeout(updateAllOverflows, 150)
+  window.addEventListener('resize', updateAllOverflows)
+})
+
+onUnmounted(() => {
+  for (const controller of replyControllers.values()) {
+    controller.abort()
+  }
+  replyControllers.clear()
+  window.removeEventListener('resize', updateAllOverflows)
+})
+
 function authHeaders() {
   if (!auth.token) return {}
   return { Authorization: `Token ${auth.token}` }
@@ -248,18 +284,6 @@ async function setWallSort(nextSort: 'top' | 'new') {
   wallSort.value = nextSort
   await loadWall()
 }
-
-onMounted(() => {
-  loadPosts()
-  loadWall()
-})
-
-onUnmounted(() => {
-  for (const controller of replyControllers.values()) {
-    controller.abort()
-  }
-  replyControllers.clear()
-})
 </script>
 
 <template>
@@ -273,14 +297,23 @@ onUnmounted(() => {
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-4">
-        <div class="tabs tabs-boxed w-fit">
-          <button class="tab" :class="{ 'tab-active': activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'">
+        <div
+          ref="mainTabsRef"
+          class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
+          :class="{
+            'has-overflow-left': mainTabsOverflow.left,
+            'has-overflow-right': mainTabsOverflow.right,
+            'has-overflow-both': mainTabsOverflow.left && mainTabsOverflow.right
+          }"
+          @scroll="checkOverflow(mainTabsRef, mainTabsOverflow)"
+        >
+          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'">
             Leaderboard
           </button>
-          <button class="tab" :class="{ 'tab-active': activeTab === 'messages' }" @click="activeTab = 'messages'">
+          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'messages' }" @click="activeTab = 'messages'">
             Message Board
           </button>
-          <button class="tab" :class="{ 'tab-active': activeTab === 'wall' }" @click="activeTab = 'wall'">
+          <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': activeTab === 'wall' }" @click="activeTab = 'wall'">
             Wall of Shame
           </button>
         </div>
@@ -298,13 +331,22 @@ onUnmounted(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <div class="tabs tabs-boxed w-fit">
-              <button class="tab" :class="{ 'tab-active': messageSort === 'top' }" @click="setMessageSort('top')">Top</button>
-              <button class="tab" :class="{ 'tab-active': messageSort === 'new' }" @click="setMessageSort('new')">New</button>
+            <div
+              ref="msgTabsRef"
+              class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
+              :class="{
+                'has-overflow-left': msgTabsOverflow.left,
+                'has-overflow-right': msgTabsOverflow.right,
+                'has-overflow-both': msgTabsOverflow.left && msgTabsOverflow.right
+              }"
+              @scroll="checkOverflow(msgTabsRef, msgTabsOverflow)"
+            >
+              <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': messageSort === 'top' }" @click="setMessageSort('top')">Top</button>
+              <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': messageSort === 'new' }" @click="setMessageSort('new')">New</button>
             </div>
             <div class="tabs tabs-boxed w-fit">
-              <button class="tab" :class="{ 'tab-active': messageScope === 'all' }" @click="setMessageScope('all')">All</button>
-              <button class="tab" :class="{ 'tab-active': messageScope === 'following' }" @click="setMessageScope('following')">Following</button>
+              <button class="tab tap-target-min" :class="{ 'tab-active': messageScope === 'all' }" @click="setMessageScope('all')">All</button>
+              <button class="tab tap-target-min" :class="{ 'tab-active': messageScope === 'following' }" @click="setMessageScope('following')">Following</button>
             </div>
           </div>
 
@@ -416,11 +458,20 @@ onUnmounted(() => {
             Public Wall of Shame: expensive boomers, top pain points, and the notes that caused the damage.
           </div>
 
-          <div class="tabs tabs-boxed w-fit">
-            <button class="tab" :class="{ 'tab-active': wallSort === 'top' }" @click="setWallSort('top')">
+          <div
+            ref="wallTabsRef"
+            class="tabs tabs-boxed w-fit nav-scroll-container flex gap-2 sm:gap-0 overflow-x-auto sm:overflow-visible sm:flex-wrap whitespace-nowrap"
+            :class="{
+              'has-overflow-left': wallTabsOverflow.left,
+              'has-overflow-right': wallTabsOverflow.right,
+              'has-overflow-both': wallTabsOverflow.left && wallTabsOverflow.right
+            }"
+            @scroll="checkOverflow(wallTabsRef, wallTabsOverflow)"
+          >
+            <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': wallSort === 'top' }" @click="setWallSort('top')">
               Top Damage
             </button>
-            <button class="tab" :class="{ 'tab-active': wallSort === 'new' }" @click="setWallSort('new')">
+            <button class="tab tap-target-min flex-shrink-0" :class="{ 'tab-active': wallSort === 'new' }" @click="setWallSort('new')">
               Most Recent
             </button>
           </div>

@@ -12,7 +12,7 @@ function onChange(event: Event) {
 <template>
   <div class="form-control w-full">
     <label class="label">
-      <span class="label-text">Select Boomer</span>
+      <span class="label-text">Who needs help?</span>
     </label>
 
     <select
@@ -21,7 +21,7 @@ function onChange(event: Event) {
       :disabled="store.isRunning"
       @change="onChange"
     >
-      <option value="">-- Choose a boomer --</option>
+      <option value="">-- Pick a boomer --</option>
       <option v-for="boomer in store.boomers" :key="boomer.id" :value="boomer.id">
         {{ boomer.name }}
       </option>

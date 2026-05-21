@@ -7,7 +7,7 @@ const store = useBoomerBill()
   <div class="stats shadow">
 
     <div class="stat">
-      <div class="stat-title">Incidents</div>
+      <div class="stat-title">Sessions</div>
       <div class="stat-value font-mono">
         {{ store.incidentCount }}
       </div>

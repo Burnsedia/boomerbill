@@ -193,10 +193,10 @@ export const useBoomerBill = defineStore('boomerbills', () => {
   }
 
   function severity(minutes: number) {
-    if (minutes < 5) return 'Minor annoyance'
-    if (minutes < 15) return 'Avoidable'
-    if (minutes < 30) return 'Painful'
-    return 'Unforgivable'
+    if (minutes < 5) return 'Tiny dent'
+    if (minutes < 15) return 'Getting pricey'
+    if (minutes < 30) return 'Ouch'
+    return 'Wallet on fire'
   }
 
   function currentDurationMs(now = Date.now()) {
@@ -507,7 +507,9 @@ export const useBoomerBill = defineStore('boomerbills', () => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
     const week = sessions.value.filter(s => s.endedAt >= cutoff)
     const cost = week.reduce((a, s) => a + s.cost, 0)
-    return `You lost $${cost.toFixed(2)} this week.`
+    const count = week.length
+    if (count === 0) return 'No damage this week — yet.'
+    return `$${cost.toFixed(2)} in damage across ${count} session${count !== 1 ? 's' : ''} this week.`
   })
 
   const avgSessionTime = computed(() => {

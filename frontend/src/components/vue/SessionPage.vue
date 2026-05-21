@@ -9,11 +9,12 @@ const store = useBoomerBill()
 </script>
 
 <template>
-  <div class="grid gap-3">
-    <div class="card bg-base-200 border border-primary shadow-lg w-full">
-      <div class="card-body gap-3">
-        <h2 class="card-title">Start a Session</h2>
-        <div class="space-y-3">
+  <div class="grid gap-6">
+    <!-- Primary: Session start card - main action area -->
+    <div class="card-elevated rounded-xl w-full">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg font-semibold">Start a Session</h2>
+        <div class="space-y-4">
           <div class="space-y-2">
             <BoomerSelect />
             <div class="flex flex-wrap gap-2">
@@ -30,6 +31,7 @@ const store = useBoomerBill()
           </div>
           <CategoryGrid />
           <Timer />
+          <!-- Critical: Active session gets prominent display -->
           <ActiveSession v-if="store.isRunning" />
         </div>
       </div>

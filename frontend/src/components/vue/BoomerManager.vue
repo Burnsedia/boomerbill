@@ -22,7 +22,7 @@ function removeBoomer(id: string) {
   <div class="card bg-base-200 border border-primary shadow-lg">
     <div class="card-body">
       <h3 class="card-title">Boomers</h3>
-      <p class="text-sm opacity-60">People you help with tech support</p>
+      <p class="text-sm opacity-60">The folks who call you when their Wi-Fi "breaks"</p>
 
       <div class="flex gap-2 mt-4">
         <input
@@ -59,7 +59,7 @@ function removeBoomer(id: string) {
         </div>
 
         <div v-if="store.boomers.length === 0" class="text-center py-6 text-opacity-60">
-          No boomers added yet. Add some people you frequently help.
+          No boomers yet. Add the folks who keep you busy.
         </div>
       </div>
     </div>

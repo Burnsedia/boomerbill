@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { createPinia } from 'pinia'
-import { computed, getCurrentInstance, onMounted, ref } from 'vue'
+import { computed, getCurrentInstance, onMounted, onUnmounted, ref } from 'vue'
 import { useBoomerBill } from './store/boomerbills'
 import { useAuthStore } from './store/auth'
 
@@ -42,11 +42,35 @@ const syncLabel = computed(() => {
   return 'Waiting to sync'
 })
 
+// Mobile nav scroll indicator state
+const navScrollRef = ref<HTMLElement | null>(null)
+const hasOverflowLeft = ref(false)
+const hasOverflowRight = ref(false)
+
+function updateNavOverflow() {
+  const el = navScrollRef.value
+  if (!el) return
+  const isOverflowing = el.scrollWidth > el.clientWidth
+  hasOverflowLeft.value = isOverflowing && el.scrollLeft > 2
+  hasOverflowRight.value = isOverflowing && el.scrollLeft < el.scrollWidth - el.clientWidth - 2
+}
+
+function onNavScroll() {
+  updateNavOverflow()
+}
+
 onMounted(() => {
   store.load()
   auth.hydrate().finally(() => {
     isBooting.value = false
   })
+  // Check overflow after render
+  setTimeout(updateNavOverflow, 100)
+  window.addEventListener('resize', updateNavOverflow)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateNavOverflow)
 })
 </script>
 
@@ -58,49 +82,61 @@ onMounted(() => {
       </div>
     </div>
 
-    <template v-else>
-      <OnboardingModal v-if="showOnboarding" />
-      <div class="card bg-base-200 border border-primary shadow-lg">
-        <div class="card-body">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex flex-wrap gap-2">
-              <button
-                class="btn btn-sm"
-                :class="currentView === 'session' ? 'btn-primary' : 'btn-ghost'"
-                @click="currentView = 'session'"
+      <template v-else>
+        <OnboardingModal v-if="showOnboarding" />
+        <div class="card bg-base-200 border border-primary shadow-lg">
+          <div class="card-body">
+            <div class="flex items-center justify-between gap-2">
+              <!-- Priority navigation: horizontally scrollable on mobile -->
+              <div
+                ref="navScrollRef"
+                class="nav-scroll-container flex items-center gap-2 overflow-x-auto sm:overflow-visible sm:flex-wrap"
+                :class="{
+                  'has-overflow-left': hasOverflowLeft,
+                  'has-overflow-right': hasOverflowRight,
+                  'has-overflow-both': hasOverflowLeft && hasOverflowRight
+                }"
+                @scroll="onNavScroll"
               >
-                Session
-              </button>
-              <button
-                class="btn btn-sm"
-                :class="currentView === 'dashboard' ? 'btn-primary' : 'btn-ghost'"
-                @click="currentView = 'dashboard'"
-              >
-                Dashboard
-              </button>
-              <button
-                class="btn btn-sm"
-                :class="currentView === 'logging' ? 'btn-primary' : 'btn-ghost'"
-                @click="currentView = 'logging'"
-              >
-                Log
-              </button>
-              <button
-                class="btn btn-sm"
-                :class="currentView === 'settings' ? 'btn-primary' : 'btn-ghost'"
-                @click="currentView = 'settings'"
-              >
-                Settings
-              </button>
-              <button
-                class="btn btn-sm"
-                :class="currentView === 'community' ? 'btn-primary' : 'btn-ghost'"
-                @click="currentView = 'community'"
-              >
-                Community
-              </button>
-            </div>
-            <div class="flex items-center gap-2">
+                <!-- Priority items (always visible): Session, Dashboard -->
+                <button
+                  class="btn btn-sm tap-target-min priority-item"
+                  :class="currentView === 'session' ? 'btn-primary' : 'btn-ghost'"
+                  @click="currentView = 'session'"
+                >
+                  Session
+                </button>
+                <button
+                  class="btn btn-sm tap-target-min priority-item"
+                  :class="currentView === 'dashboard' ? 'btn-primary' : 'btn-ghost'"
+                  @click="currentView = 'dashboard'"
+                >
+                  Dashboard
+                </button>
+                <!-- Secondary items (scroll on mobile) -->
+                <button
+                  class="btn btn-sm tap-target-min priority-item"
+                  :class="currentView === 'logging' ? 'btn-primary' : 'btn-ghost'"
+                  @click="currentView = 'logging'"
+                >
+                  Log
+                </button>
+                <button
+                  class="btn btn-sm tap-target-min priority-item"
+                  :class="currentView === 'settings' ? 'btn-primary' : 'btn-ghost'"
+                  @click="currentView = 'settings'"
+                >
+                  Settings
+                </button>
+                <button
+                  class="btn btn-sm tap-target-min priority-item"
+                  :class="currentView === 'community' ? 'btn-primary' : 'btn-ghost'"
+                  @click="currentView = 'community'"
+                >
+                  Community
+                </button>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
               <template v-if="auth.isAuthenticated">
                 <StatusIndicator
                   v-if="store.syncStatus === 'syncing'"
