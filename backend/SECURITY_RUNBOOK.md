@@ -9,6 +9,18 @@
 - Revoke old secret values after verification succeeds.
 - Record rotation date, owner, and impacted environments.
 
+## Password Reset Email Reliability & Safety Checklist
+
+- Keep `EMAIL_PROVIDER=console` for local development; use `smtp` only with real provider credentials.
+- Require `PASSWORD_RESET_CONFIRM_URL` to stay relative and include `{uid}` + `{token}` placeholders.
+- Verify `PUBLIC_DOMAIN` points to your real frontend domain before enabling production reset emails.
+- Enforce SMTP transport sanity: do not enable both `EMAIL_USE_TLS` and `EMAIL_USE_SSL`.
+- Ensure SPF/DKIM/DMARC records are configured for the sender domain to improve inbox delivery.
+- After deploy, run one password-reset test and verify:
+  - provider logs show accepted delivery,
+  - reset URL resolves to your expected frontend host,
+  - token can be redeemed once and expires as expected.
+
 ## Incident Response Checklist (Secret Exposure)
 
 - Contain immediately: remove exposed value from code, logs, and shared channels.

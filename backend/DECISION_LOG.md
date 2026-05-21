@@ -1,5 +1,18 @@
 # Decision Log
 
+## 2026-05-21 - Enforce safe password-reset and SMTP guardrails
+
+- Decision: Fail startup for unsafe reset-link config and contradictory SMTP transport settings.
+- Context: Password reset reliability depends on correct domain/link composition and deterministic SMTP behavior.
+- Change:
+  - Require `PASSWORD_RESET_CONFIRM_URL` to include `{uid}` and `{token}` and remain relative (no scheme/host).
+  - Block `EMAIL_USE_TLS=True` with `EMAIL_USE_SSL=True`.
+  - Validate `DEFAULT_FROM_EMAIL` has mailbox format in production.
+- Rationale: Prevent misrouted reset links, reduce phishing/open-redirect risk, and avoid silent SMTP delivery failures.
+- Impact:
+  - Misconfigurations are caught at startup instead of during incident response.
+  - Local dev flow remains compatible with Djoser defaults.
+
 ## 2026-05-21 - Standardize password reset URL contract and deployment setup
 
 - Decision: Keep Djoser password reset confirmation URL configurable via `PASSWORD_RESET_CONFIRM_URL`, with a safe default of `reset-password?uid={uid}&token={token}`.

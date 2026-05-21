@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-05-21 (Password reset email safety/reliability hardening)
+
+### Changed
+- Added startup guardrails in `backend/core/core/settings.py`:
+  - `PASSWORD_RESET_CONFIRM_URL` must be relative and contain `{uid}` + `{token}`.
+  - SMTP config rejects `EMAIL_USE_TLS=True` with `EMAIL_USE_SSL=True`.
+  - Production requires mailbox-like `DEFAULT_FROM_EMAIL`.
+- Updated `backend/.env.example`, `backend/README.md`, and `backend/SECURITY_RUNBOOK.md` with operational guidance for safe reset-link and SMTP configuration.
+
+### Why
+- Reduce password reset abuse/misconfiguration risk and improve delivery reliability by failing fast on unsafe config.
+
 ## 2026-05-21 (Password reset setup documentation)
 
 ### Changed

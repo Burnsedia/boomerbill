@@ -1,5 +1,16 @@
 # Devlog for BoomerBill
 
+## 2026-05-21 23:45
+
+### security/build-mode
+
+- Implemented password-reset email safety guardrails in backend settings while keeping existing Djoser flow intact.
+- Added startup validation for:
+  - relative-only `PASSWORD_RESET_CONFIRM_URL` and required `{uid}` + `{token}` placeholders,
+  - mutually exclusive SMTP transport flags,
+  - production mailbox format in `DEFAULT_FROM_EMAIL`.
+- Updated security/ops docs (`backend/README.md`, `backend/SECURITY_RUNBOOK.md`, `backend/.env.example`) and coordinated logs (`backend/DECISION_LOG.md`, `backend/CHANGELOG.md`).
+
 ## 2026-05-21 23:35
 
 ### docs/build-mode
