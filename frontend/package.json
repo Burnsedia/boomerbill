@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "profile": "npx tsx scripts/profile.ts"
   },
   "dependencies": {
     "@astrojs/vue": "^5.1.4",
