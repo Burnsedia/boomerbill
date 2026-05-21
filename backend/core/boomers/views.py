@@ -19,6 +19,7 @@ class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    ordering = ["name"]
 
     def get_queryset(self):
         user = self.request.user
@@ -171,11 +172,13 @@ class BoomerViewSet(ModelViewSet):
     )
     serializer_class = BoomerSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    ordering = ["name"]
 
 
 class SessionViewSet(ModelViewSet):
     serializer_class = SessionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    ordering = ["-start"]
 
     def get_queryset(self):
         user = self.request.user
@@ -251,6 +254,7 @@ class SyncPushView(APIView):
                         Category(
                             id=f"default-{uuid.uuid4().hex[:10]}",
                             name=cat["name"],
+                            normalized_name=norm,
                             is_default=True,
                             is_shared=True,
                             owner=None,
@@ -271,6 +275,7 @@ class SyncPushView(APIView):
                 Category(
                     id=str(cat["id"])[:100],
                     name=cat["name"],
+                    normalized_name=norm,
                     is_default=False,
                     owner=request.user,
                     is_shared=cat["is_shared"],
@@ -279,12 +284,6 @@ class SyncPushView(APIView):
 
         if categories_to_create:
             Category.objects.bulk_create(categories_to_create, ignore_conflicts=True)
-            # Refresh in-memory maps with newly created categories
-            for cat in categories_to_create:
-                if cat.owner is None:
-                    default_categories[cat.normalized_name] = cat
-                else:
-                    user_categories[cat.normalized_name] = cat
 
         # ------------------------------------------------------------------
         # 4. Preload existing boomers into in-memory map
@@ -375,6 +374,7 @@ class SyncPushView(APIView):
                         Category(
                             id=f"category-{uuid.uuid4().hex[:12]}",
                             name=ps["category_payload"]["name"],
+                            normalized_name=norm,
                             is_default=bool(ps["category_payload"]["is_default"]),
                             owner=None if ps["category_payload"]["is_default"] else request.user,
                             is_shared=bool(ps["category_payload"].get("is_shared", False)),
@@ -485,9 +485,10 @@ class SyncPushView(APIView):
                 skipped += len(unique_sessions) - created
             else:
                 skipped += len(unique_sessions)
+            n_to_create = len(sessions_to_create)
         else:
             # All were duplicates or invalid within the payload itself
-            pass
+            n_to_create = 0
 
         return Response(
             {"created": created, "skipped": skipped, "total": len(sessions)}
