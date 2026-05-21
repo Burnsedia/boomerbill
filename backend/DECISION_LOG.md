@@ -1,5 +1,52 @@
 # Decision Log
 
+## 2026-05-21 - Adopt dual-mode auth migration (legacy token + JWT)
+
+- Decision: Run a phased migration using dual-mode auth as the default (`AUTH_MODE=dual`).
+- Context: Issue 43 requires stronger token handling without disrupting existing clients that still use DRF authtoken endpoints.
+- Change:
+  - Introduce `AUTH_MODE`, `ENABLE_LEGACY_TOKEN_AUTH`, and `ENABLE_JWT_AUTH` in settings.
+  - Gate auth URLs so legacy and JWT endpoints can coexist or be toggled independently.
+  - Add fail-fast config validation for invalid mode combinations.
+- Rationale: Dual-mode supports zero-downtime client transitions and allows rollback without reverting code.
+- Impact:
+  - Existing clients remain functional on token auth.
+  - New clients can authenticate with JWT immediately.
+  - Operations can switch modes per environment using env-only changes.
+- Migration plan:
+  1. Deploy with `AUTH_MODE=dual`.
+  2. Monitor login failures and JWT adoption.
+  3. Move to `AUTH_MODE=jwt` only after explicit cutover approval.
+- Rollback plan: set `AUTH_MODE=legacy_token` (or `ENABLE_JWT_AUTH=False`) and redeploy.
+
+## 2026-05-21 - Normalize frontend auth handling around scheme-aware session state
+
+- Decision: Store auth as a structured session (`scheme + access token + optional refresh`) and pass full authorization header values through sync APIs.
+- Context: Frontend previously assumed token-only auth and prepended `Token` in several call sites, which blocks clean JWT adoption.
+- Change:
+  - Add `AuthSession` with scheme-aware header generation.
+  - Persist active auth session in `sessionStorage`, with fallback migration from legacy `localStorage` token key.
+  - Update boomer sync/category methods to accept full auth headers.
+- Rationale: Reduces branching across call sites and keeps store interfaces compatible with either `Token` or `Bearer` semantics.
+- Impact:
+  - Dual-mode login and API calls work without duplicating token-format logic.
+  - Legacy sessions can still hydrate during transition.
+  - Logout behavior can target token logout or JWT blacklist appropriately.
+
+## 2026-05-21 - Treat JWT invalidation as an operational control surface
+
+- Decision: Make JWT revocation/rollback procedures explicit in runbooks and enforce safe defaults in config.
+- Context: Migrating auth increases incident-response complexity unless token invalidation strategy is documented and tested.
+- Change:
+  - Document secure defaults (short access TTL, refresh rotation, blacklist-after-rotation).
+  - Add explicit emergency invalidation procedure in `SECURITY_RUNBOOK.md`.
+  - Enforce `JWT_BLACKLIST_AFTER_ROTATION=True` requires `JWT_ROTATE_REFRESH_TOKENS=True`.
+- Rationale: Security posture depends on predictable operational behavior, not only code paths.
+- Impact:
+  - Faster response during auth incidents.
+  - Lower risk of misconfigured JWT settings in production.
+  - Clear path to temporarily disable JWT while preserving user access via legacy mode.
+
 ## 2026-05-19 - Database engine behavior by environment
 
 - Decision: Use sqlite in development by default and Postgres in production when `DATABASE_URL` is set.
