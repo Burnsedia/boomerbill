@@ -1,5 +1,49 @@
 # Decision Log
 
+## 2026-05-21 - Standardize local frontend↔backend connectivity defaults
+
+- Decision: Keep frontend local API default as `http://localhost:8000` and explicitly document per-environment API base URL overrides.
+- Context: Local development repeatedly failed with backend connectivity/auth errors when frontend and backend origins did not match expected values.
+- Change:
+  - Frontend API helper resolves to `PUBLIC_API_BASE_URL` first, then falls back to local backend (`localhost:8000`).
+  - Deployment config keeps production API base pinned to Fly (`https://boomerbill-api.fly.dev`).
+- Rationale: A deterministic local default removes onboarding friction while preserving explicit production routing.
+- Impact:
+  - Local auth/login requests target the expected backend without extra setup.
+  - Fewer false CORS/auth failures caused by accidental API host drift.
+  - Environment switching remains config-only (`PUBLIC_API_BASE_URL`).
+- Local setup note: run backend on port `8000` or set `PUBLIC_API_BASE_URL` to your backend origin before starting frontend.
+
+## 2026-05-21 - Enforce explicit CORS/CSRF policy for auth-capable cross-origin calls
+
+- Decision: Fail fast on unsafe or incomplete CORS settings and require explicit trusted origins for state-changing auth flows.
+- Context: Cross-origin login/session flows can fail silently (or become unsafe) when credential/CORS settings are permissive or mismatched.
+- Change:
+  - Block wildcard `*` in `CORS_ALLOWED_ORIGINS`.
+  - Require explicit `CORS_ALLOWED_ORIGINS` in non-debug environments when `CORS_ALLOW_CREDENTIALS=True`.
+  - Maintain explicit `CSRF_TRUSTED_ORIGINS` configuration.
+- Rationale: Security-sensitive auth paths need strict, predictable origin policy in both local and deployed environments.
+- Impact:
+  - Startup catches invalid CORS config before runtime incidents.
+  - Cross-origin auth behavior is reproducible across environments.
+  - Misconfiguration risk drops for local/prod parity.
+- Rollback note: temporarily disable credentialed CORS (`CORS_ALLOW_CREDENTIALS=False`) to unblock non-cookie flows while correcting origin lists.
+
+## 2026-05-21 - Preserve PWA manifest/service-worker delivery via hosting headers
+
+- Decision: Ship explicit hosting headers for `manifest.webmanifest`, `sw.js`, and `registerSW.js`.
+- Context: Manifest 404/mime mismatches and stale service worker caching degrade installability and can mask frontend update fixes.
+- Change:
+  - Set `Content-Type: application/manifest+json` for `/manifest.webmanifest`.
+  - Set no-store/no-cache headers for service worker scripts.
+  - Keep manifest link anchored at `/manifest.webmanifest` in app layout.
+- Rationale: Correct content type + caching behavior is required for reliable PWA install/update flows.
+- Impact:
+  - Eliminates manifest delivery ambiguity on Netlify.
+  - Reduces stale SW behavior after deploy.
+  - Improves reliability of install prompts and app metadata loading.
+- Rollback note: if PWA rollout needs to pause, remove SW registration script first, then relax SW headers in hosting config.
+
 ## 2026-05-21 - Adopt dual-mode auth migration (legacy token + JWT)
 
 - Decision: Run a phased migration using dual-mode auth as the default (`AUTH_MODE=dual`).

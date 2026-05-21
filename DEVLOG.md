@@ -1,5 +1,23 @@
 # Devlog for BoomerBill
 
+## 2026-05-21 23:10
+
+### docs/build-mode
+
+- Reviewed issue scope and implemented fixes across frontend hosting + backend auth/connectivity:
+  - manifest 404/delivery path,
+  - local auth + CORS policy,
+  - frontend → backend local base URL behavior.
+- Added decision records in `backend/DECISION_LOG.md` for:
+  - local API base URL defaults,
+  - strict CORS/CSRF enforcement strategy,
+  - PWA manifest/service-worker hosting header policy.
+- Added actionable changelog entry in `backend/CHANGELOG.md` with:
+  - confirmed fix summary,
+  - local setup steps,
+  - rollback options.
+- Outcome: docs now capture what changed, why it changed, and how to operate/migrate/rollback safely without code archaeology.
+
 ## 05/03/2026
 
 - **Feat:** setup basic auth with djoser with default abstract user model

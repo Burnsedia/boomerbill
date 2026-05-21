@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-05-21 (Connectivity/Auth/PWA issue review)
+
+### Confirmed Fixes
+- **Manifest 404 / manifest delivery**
+  - Netlify headers now explicitly serve `/manifest.webmanifest` as `application/manifest+json`.
+  - Service worker assets (`/sw.js`, `/registerSW.js`) now use no-cache/no-store headers to reduce stale-client behavior after deploys.
+  - Frontend layout keeps a stable manifest link target at `/manifest.webmanifest`.
+- **Local auth/CORS/backend connectivity**
+  - Frontend API base now defaults to local backend (`http://localhost:8000`) when `PUBLIC_API_BASE_URL` is not set.
+  - Backend enforces explicit CORS/CSRF policy for auth-capable cross-origin requests:
+    - wildcard `*` blocked for `CORS_ALLOWED_ORIGINS`,
+    - explicit origins required when `CORS_ALLOW_CREDENTIALS=True` and `DJANGO_DEBUG=False`.
+  - Existing dual-mode auth rollout controls remain in place for legacy-token/JWT transitions.
+
+### Local Setup Notes
+- Run backend on `http://localhost:8000` for zero-config frontend connectivity.
+- If backend runs elsewhere, set `PUBLIC_API_BASE_URL=<backend-origin>` before running the frontend.
+- For cross-origin local auth testing, set matching `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` in backend env.
+
+### Rollback Notes
+- PWA/manifest rollback: remove SW registration first, then revert manifest/SW header rules.
+- Auth connectivity rollback: set `AUTH_MODE=legacy_token` (or disable JWT) while preserving explicit CORS origin lists.
+
 ## 2026-05-21
 
 ### Changed
