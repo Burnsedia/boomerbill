@@ -48,6 +48,20 @@ run_migrations() {
 }
 
 # ---------------------------------------------------------------------------
+# Helper: collect static assets
+# ---------------------------------------------------------------------------
+collect_static() {
+  echo "[entrypoint] Collecting static assets..."
+  if uv run python "${MANAGE_DIR}/manage.py" collectstatic --noinput; then
+    echo "[entrypoint] Static assets collected successfully."
+  else
+    exit_code=$?
+    echo "[entrypoint] ERROR: collectstatic failed with exit code ${exit_code}." >&2
+    exit $exit_code
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Helper: start Gunicorn
 # ---------------------------------------------------------------------------
 start_gunicorn() {
@@ -78,11 +92,12 @@ if [[ $# -gt 0 ]]; then
   exec "$@"
 fi
 
-# Normal startup path: run migrations, then start Gunicorn.
+# Normal startup path: collect static, run migrations, then start Gunicorn.
 if [[ "${SKIP_MIGRATIONS:-}" =~ ^(1|true|True|TRUE)$ ]]; then
   echo "[entrypoint] SKIP_MIGRATIONS is set, skipping migrations."
   start_gunicorn
 else
+  collect_static
   run_migrations
   start_gunicorn
 fi

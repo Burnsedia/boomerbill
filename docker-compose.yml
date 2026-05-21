@@ -1,0 +1,86 @@
+# =============================================================================
+# BoomerBill - VPS Deployment (Docker Compose)
+# =============================================================================
+#
+# Services:
+#   app      - Django backend (Gunicorn)
+#   db       - PostgreSQL database
+#
+# Usage:
+#   docker compose up -d            # Start all services
+#   docker compose logs -f app      # Follow app logs
+#   docker compose down             # Stop all services
+#   docker compose pull && docker compose up -d  # Update and restart
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    container_name: boomerbill-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-boomerbill}
+      POSTGRES_USER: ${POSTGRES_USER:-boomerbill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-boomerbill} -d ${POSTGRES_DB:-boomerbill}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - boomerbill-net
+
+  # ---------------------------------------------------------------------------
+  # Django Backend (Gunicorn)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: boomerbill-app
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.vps
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-boomerbill}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-boomerbill}
+      PORT: ${APP_PORT:-8000}
+      WORKERS: ${APP_WORKERS:-2}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Persist collected static files and media uploads
+      - static_data:/app/core/staticfiles
+      - media_data:/app/media
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${APP_PORT:-8000}/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - boomerbill-net
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  static_data:
+    driver: local
+  media_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  boomerbill-net:
+    driver: bridge

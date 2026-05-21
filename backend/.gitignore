@@ -12,3 +12,6 @@ __pycache__/
 # Local environments and data
 .venv/
 *.sqlite3
+
+# Collected static assets
+staticfiles/
