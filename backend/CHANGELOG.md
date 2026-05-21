@@ -3,6 +3,11 @@
 ## 2026-05-21
 
 ### Changed
+- Added Django HTTP/TLS security hardening defaults for Issue 45:
+  - `SECURE_SSL_REDIRECT` defaults to production-on and development-off.
+  - HSTS is configurable through `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, and `SECURE_HSTS_PRELOAD`.
+  - `SECURE_CONTENT_TYPE_NOSNIFF` and `SECURE_REFERRER_POLICY` are explicitly configured.
+  - `backend/.env.example` and `backend/README.md` document the deployment knobs and rollout cautions.
 - Added dual-mode authentication controls in `backend/core/core/settings.py` and `backend/core/core/urls.py` for Issue 43 migration:
   - `AUTH_MODE` support (`dual`, `jwt`, `legacy_token`) with explicit feature flags.
   - Conditional enabling of legacy Djoser token endpoints and JWT endpoints.
@@ -24,21 +29,27 @@
 - Extended backend operations docs in `backend/README.md` and `backend/SECURITY_RUNBOOK.md` with migration and incident-response guidance.
 
 ### Why
+- Establish a minimal production security baseline for HTTPS enforcement, HSTS, MIME-sniffing protection, and referrer leakage control.
 - Enable a low-risk, rollback-friendly migration from legacy DRF token auth to JWT without breaking active clients.
 - Keep auth changes deployable in phases using environment toggles instead of code rollbacks.
 - Standardize frontend/backend auth header handling across both schemes.
 
 ### Migration Notes
+- Before enabling strict HTTPS enforcement, confirm TLS terminates correctly and forwards `X-Forwarded-Proto: https` to Django.
+- Increase `SECURE_HSTS_SECONDS` gradually after confirming every production host is HTTPS-ready.
+- Keep `SECURE_HSTS_INCLUDE_SUBDOMAINS=False` and `SECURE_HSTS_PRELOAD=False` until subdomain coverage and preload submission are intentional.
 - Default rollout mode is `AUTH_MODE=dual` with both auth systems enabled.
 - JWT-only rollout path: set `AUTH_MODE=jwt` (or `ENABLE_LEGACY_TOKEN_AUTH=False`, `ENABLE_JWT_AUTH=True`).
 - Legacy-only rollback path: set `AUTH_MODE=legacy_token` (or `ENABLE_JWT_AUTH=False`) and redeploy.
 - If enabling JWT blacklist, keep `JWT_ROTATE_REFRESH_TOKENS=True`.
 
 ### Rollback Notes
+- If production HTTPS redirect causes a proxy loop or availability issue, temporarily set `SECURE_SSL_REDIRECT=False` and `SECURE_HSTS_SECONDS=0`, then fix proxy/TLS forwarding before re-enabling.
 - Fast rollback is configuration-only: disable JWT via env, redeploy, and keep legacy token endpoints active.
 - For JWT compromise response, rotate `DJANGO_SECRET_KEY` and follow `SECURITY_RUNBOOK.md` invalidation checklist.
 
 ### Testing Summary
+- Backend: ran Django system checks with local development defaults and production-like security settings.
 - Backend: added API tests that validate token login compatibility, JWT create/refresh flow, coexistence of both login endpoints, and malformed auth rejection.
 - Frontend: added auth-store test ensuring fallback from legacy login endpoint to JWT endpoint and Bearer-header usage.
 - Frontend: existing store test updated to require explicit `Token` header string for category deletion API call.
