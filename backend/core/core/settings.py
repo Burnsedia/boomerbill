@@ -223,6 +223,27 @@ CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=False)
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
+if DEBUG:
+    default_dev_origins = [
+        "http://localhost:4321",
+        "http://127.0.0.1:4321",
+    ]
+    dev_cors_allowed_origins = env.list(
+        "DEV_CORS_ALLOWED_ORIGINS",
+        default=default_dev_origins,
+    )
+    dev_csrf_trusted_origins = env.list(
+        "DEV_CSRF_TRUSTED_ORIGINS",
+        default=default_dev_origins,
+    )
+
+    CORS_ALLOWED_ORIGINS = list(
+        dict.fromkeys([*CORS_ALLOWED_ORIGINS, *dev_cors_allowed_origins])
+    )
+    CSRF_TRUSTED_ORIGINS = list(
+        dict.fromkeys([*CSRF_TRUSTED_ORIGINS, *dev_csrf_trusted_origins])
+    )
+
 if not DEBUG and CORS_ALLOW_CREDENTIALS and not CORS_ALLOWED_ORIGINS:
     raise ImproperlyConfigured(
         "CORS_ALLOWED_ORIGINS must be set when CORS_ALLOW_CREDENTIALS=True and DJANGO_DEBUG=False"

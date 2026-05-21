@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.test import override_settings
 from rest_framework.test import APITestCase
 
 
@@ -180,3 +181,21 @@ class AuthEndpointAccessibilityTests(APITestCase):
                 "password" in missing_password.data
                 or "non_field_errors" in missing_password.data
             )
+
+
+class AuthCorsTests(APITestCase):
+    @override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:4321"])
+    def test_preflight_is_allowed_for_auth_login_endpoint(self):
+        response = self.client.options(
+            "/api/auth/token/login/",
+            HTTP_ORIGIN="http://localhost:4321",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type,authorization",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Access-Control-Allow-Origin"],
+            "http://localhost:4321",
+        )
+        self.assertIn("POST", response["Access-Control-Allow-Methods"])
