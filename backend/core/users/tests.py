@@ -245,6 +245,19 @@ class PasswordResetApiTests(APITestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(self.user_email, mail.outbox[0].to)
 
+    def test_reset_request_email_contains_uid_and_token(self):
+        response = self.client.post(
+            "/api/auth/users/reset_password/",
+            {"email": self.user_email},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(len(mail.outbox), 1)
+        email_body = mail.outbox[0].body
+        self.assertIn("uid=", email_body)
+        self.assertIn("token=", email_body)
+
     def test_reset_confirm_successfully_updates_password(self):
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))
         token = default_token_generator.make_token(self.user)
