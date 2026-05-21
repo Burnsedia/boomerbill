@@ -499,12 +499,62 @@ class SyncPullView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        user_sessions = (
+        # ------------------------------------------------------------------
+        # Parse optional pagination params (backward compatible)
+        # ------------------------------------------------------------------
+        cursor_ms = request.query_params.get("cursor")
+        limit_param = request.query_params.get("limit")
+
+        use_pagination = cursor_ms is not None or limit_param is not None
+
+        queryset = (
             Session.objects.filter(owner=request.user)
             .select_related("boomer", "category")
             .order_by("start")
         )
 
+        if cursor_ms is not None:
+            try:
+                cursor_dt = datetime.fromtimestamp(
+                    float(cursor_ms) / 1000.0, tz=timezone.utc
+                )
+                queryset = queryset.filter(start__gt=cursor_dt)
+            except (TypeError, ValueError, OSError):
+                # Invalid cursor — ignore and return all from start
+                pass
+
+        if use_pagination and limit_param is not None:
+            try:
+                limit = int(limit_param)
+                if limit > 0:
+                    # Fetch one extra to determine has_more
+                    queryset = queryset[: limit + 1]
+            except (TypeError, ValueError):
+                pass
+
+        user_sessions = list(queryset)
+
+        # ------------------------------------------------------------------
+        # Determine pagination metadata
+        # ------------------------------------------------------------------
+        has_more = False
+        next_cursor = None
+        if use_pagination and limit_param is not None:
+            try:
+                limit = int(limit_param)
+                if limit > 0 and len(user_sessions) > limit:
+                    has_more = True
+                    user_sessions = user_sessions[:limit]  # trim the extra
+            except (TypeError, ValueError):
+                pass
+
+        if user_sessions:
+            last_session = user_sessions[-1]
+            next_cursor = int(last_session.start.timestamp() * 1000)
+
+        # ------------------------------------------------------------------
+        # Build response payload
+        # ------------------------------------------------------------------
         boomer_names = sorted(
             {
                 session.boomer.name
@@ -559,4 +609,10 @@ class SyncPullView(APIView):
                 for category in shared_categories
             ],
         }
+
+        # Include pagination metadata only when pagination is active
+        if use_pagination:
+            payload["nextCursor"] = next_cursor
+            payload["hasMore"] = has_more
+
         return Response(payload)

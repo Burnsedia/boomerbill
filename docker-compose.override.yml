@@ -1,0 +1,57 @@
+# =============================================================================
+# BoomerBill - Nginx Reverse Proxy (Optional Override)
+# =============================================================================
+#
+# This file adds an nginx reverse proxy that:
+#   1. Terminates TLS (HTTPS) with Let's Encrypt certificates
+#   2. Serves the Astro frontend static files
+#   3. Proxies API requests to the Django backend
+#   4. Handles HTTP → HTTPS redirect
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+#
+# Or set COMPOSE_FILE env var:
+#   export COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml
+#   docker compose up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy with TLS Termination
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: boomerbill-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Nginx configuration
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+
+      # Let's Encrypt certificates (mounted from host)
+      - ./deploy/nginx/certs:/etc/nginx/certs:ro
+
+      # ACME challenge directory for certbot renewal
+      - ./deploy/nginx/acme:/var/www/certbot:ro
+
+      # Astro frontend static files (build output)
+      - ./frontend/dist:/usr/share/nginx/html:ro
+
+      # Nginx logs
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - boomerbill-net
+
+# =============================================================================
+# Additional Volumes
+# =============================================================================
+volumes:
+  nginx_logs:
+    driver: local
