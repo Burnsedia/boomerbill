@@ -18,6 +18,21 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
+Default local backend URL is `http://127.0.0.1:8000` (also reachable at `http://localhost:8000`).
+Frontend dev server runs on `http://localhost:4321`.
+
+### Quick local auth connectivity checks
+
+```bash
+# Check backend process is listening on 8000
+curl -i http://127.0.0.1:8000/api/auth/users/
+
+# Verify auth endpoint route is registered
+curl -i -X POST http://127.0.0.1:8000/api/auth/token/login/ \
+  -H 'Content-Type: application/json' \
+  --data '{"username":"invalid","password":"invalid"}'
+```
+
 ## Production Runtime Security Requirements
 
 When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
@@ -44,6 +59,20 @@ Backend supports dual-mode auth for a safe migration path:
 
 You can also explicitly override with `ENABLE_LEGACY_TOKEN_AUTH` and `ENABLE_JWT_AUTH`.
 Legacy compatibility endpoints remain available by default (`/api/auth/token/login/`, `/api/auth/token/logout/`) while JWT endpoints are enabled (`/api/auth/jwt/create/`, `/api/auth/jwt/refresh/`, `/api/auth/jwt/verify/`).
+
+## Local CORS defaults
+
+When `DJANGO_DEBUG=True`, backend automatically allows CORS and CSRF trusted origins for:
+
+- `http://localhost:4321`
+- `http://127.0.0.1:4321`
+
+Override or extend with:
+
+- `DEV_CORS_ALLOWED_ORIGINS`
+- `DEV_CSRF_TRUSTED_ORIGINS`
+
+Production still requires explicit environment configuration (`CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`) and keeps wildcard origins blocked.
 
 ### Validation commands
 
