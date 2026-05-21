@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework.test import APITestCase
 
 
@@ -112,3 +113,70 @@ class AuthMigrationApiTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION="Token invalidtokenvalue")
         invalid_token = self.client.post("/api/messages/", {"body": "bad"}, format="json")
         self.assertEqual(invalid_token.status_code, 401)
+
+
+class AuthEndpointAccessibilityTests(APITestCase):
+    def setUp(self):
+        self.username = "auth-user"
+        self.password = "strong-pass-123"
+        get_user_model().objects.create_user(
+            username=self.username,
+            email="auth-user@example.com",
+            password=self.password,
+        )
+
+    def test_token_login_endpoint_matches_auth_mode_configuration(self):
+        response = self.client.post(
+            "/api/auth/token/login/",
+            {"username": self.username, "password": self.password},
+            format="json",
+        )
+
+        if settings.ENABLE_LEGACY_TOKEN_AUTH:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("auth_token", response.data)
+        else:
+            self.assertEqual(response.status_code, 404)
+
+    def test_jwt_create_endpoint_matches_auth_mode_configuration(self):
+        response = self.client.post(
+            "/api/auth/jwt/create/",
+            {"username": self.username, "password": self.password},
+            format="json",
+        )
+
+        if settings.ENABLE_JWT_AUTH:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("access", response.data)
+            self.assertIn("refresh", response.data)
+        else:
+            self.assertEqual(response.status_code, 404)
+
+    def test_malformed_auth_payloads_return_validation_errors(self):
+        if settings.ENABLE_JWT_AUTH:
+            missing_password = self.client.post(
+                "/api/auth/jwt/create/",
+                {"username": self.username},
+                format="json",
+            )
+            self.assertEqual(missing_password.status_code, 400)
+            self.assertIn("password", missing_password.data)
+
+            bad_refresh_payload = self.client.post(
+                "/api/auth/jwt/refresh/",
+                {"refresh": "not-a-jwt"},
+                format="json",
+            )
+            self.assertEqual(bad_refresh_payload.status_code, 401)
+
+        if settings.ENABLE_LEGACY_TOKEN_AUTH:
+            missing_password = self.client.post(
+                "/api/auth/token/login/",
+                {"username": self.username},
+                format="json",
+            )
+            self.assertEqual(missing_password.status_code, 400)
+            self.assertTrue(
+                "password" in missing_password.data
+                or "non_field_errors" in missing_password.data
+            )
