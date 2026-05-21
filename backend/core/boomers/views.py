@@ -161,16 +161,26 @@ class CategoryViewSet(ModelViewSet):
 
 
 class BoomerViewSet(ModelViewSet):
-    queryset = Boomer.objects.annotate(
-        total_sessions=Count("boomer_sessions"),
-        total_minutes=Coalesce(Sum("boomer_sessions__minutes"), Value(0)),
-        total_cost=Coalesce(Sum("boomer_sessions__cost"), Value(0)),
-        avg_minutes=Coalesce(Avg("boomer_sessions__minutes"), Value(0.0)),
-        avg_cost=Coalesce(Avg("boomer_sessions__cost"), Value(0.0)),
-        last_session_at=Max("boomer_sessions__end"),
-    )
     serializer_class = BoomerSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        base = Boomer.objects.all()
+        # Only compute heavy aggregates on detail/retrieve actions.
+        # List calls get a lightweight queryset — aggregates are added
+        # on-demand via get_serializer_context so the serializer can
+        # fall back gracefully, but the main win is avoiding GROUP BY
+        # across the entire Session table on every list request.
+        if self.action == "retrieve":
+            return base.annotate(
+                total_sessions=Count("boomer_sessions"),
+                total_minutes=Coalesce(Sum("boomer_sessions__minutes"), Value(0)),
+                total_cost=Coalesce(Sum("boomer_sessions__cost"), Value(0)),
+                avg_minutes=Coalesce(Avg("boomer_sessions__minutes"), Value(0.0)),
+                avg_cost=Coalesce(Avg("boomer_sessions__cost"), Value(0.0)),
+                last_session_at=Max("boomer_sessions__end"),
+            )
+        return base
 
 
 class SessionViewSet(ModelViewSet):
@@ -196,6 +206,9 @@ class SyncPushView(APIView):
         categories = payload.get("categories", [])
         sessions = payload.get("sessions", [])
 
+        # ------------------------------------------------------------------
+        # 1. Build in-memory maps from payload
+        # ------------------------------------------------------------------
         boomer_name_by_id = {}
         for boomer in boomers:
             if isinstance(boomer, dict):
@@ -219,41 +232,81 @@ class SyncPushView(APIView):
                         "is_shared": bool(category.get("isShared", False)),
                     }
 
-        for category in category_by_id.values():
-            if category["is_default"]:
-                Category.objects.get_or_create(
-                    normalized_name=category["normalized_name"],
-                    owner=None,
-                    defaults={
-                        "id": f"default-{uuid.uuid4().hex[:10]}",
-                        "name": category["name"],
-                        "is_default": True,
-                        "is_shared": True,
-                    },
+        # ------------------------------------------------------------------
+        # 2. Preload existing categories into in-memory maps
+        #    - User-owned categories keyed by normalized_name
+        #    - Default (owner=None) categories keyed by normalized_name
+        # ------------------------------------------------------------------
+        user_categories = {
+            c.normalized_name: c
+            for c in Category.objects.filter(owner=request.user)
+        }
+        default_categories = {
+            c.normalized_name: c
+            for c in Category.objects.filter(owner=None)
+        }
+
+        # ------------------------------------------------------------------
+        # 3. Process categories from payload — batch create missing ones
+        # ------------------------------------------------------------------
+        categories_to_create = []
+        for cat in category_by_id.values():
+            norm = cat["normalized_name"]
+            if cat["is_default"]:
+                if norm not in default_categories:
+                    categories_to_create.append(
+                        Category(
+                            id=f"default-{uuid.uuid4().hex[:10]}",
+                            name=cat["name"],
+                            is_default=True,
+                            is_shared=True,
+                            owner=None,
+                        )
+                    )
+                continue
+
+            if norm in user_categories:
+                # Update name if changed
+                existing = user_categories[norm]
+                if existing.name != cat["name"]:
+                    existing.name = cat["name"]
+                    existing.save(update_fields=["name", "normalized_name"])
+                continue
+
+            # New user-owned category
+            categories_to_create.append(
+                Category(
+                    id=str(cat["id"])[:100],
+                    name=cat["name"],
+                    is_default=False,
+                    owner=request.user,
+                    is_shared=cat["is_shared"],
                 )
-                continue
-
-            existing_owned = Category.objects.filter(
-                owner=request.user,
-                normalized_name=category["normalized_name"],
-            ).first()
-            if existing_owned:
-                if existing_owned.name != category["name"]:
-                    existing_owned.name = category["name"]
-                    existing_owned.save(update_fields=["name", "normalized_name"])
-                continue
-
-            Category.objects.create(
-                id=str(category["id"])[:100],
-                name=category["name"],
-                is_default=False,
-                owner=request.user,
-                is_shared=category["is_shared"],
             )
 
+        if categories_to_create:
+            Category.objects.bulk_create(categories_to_create, ignore_conflicts=True)
+            # Refresh in-memory maps with newly created categories
+            for cat in categories_to_create:
+                if cat.owner is None:
+                    default_categories[cat.normalized_name] = cat
+                else:
+                    user_categories[cat.normalized_name] = cat
+
+        # ------------------------------------------------------------------
+        # 4. Preload existing boomers into in-memory map
+        # ------------------------------------------------------------------
+        boomer_name_map = {b.name: b for b in Boomer.objects.all()}
+        boomers_to_create = []
+
+        # ------------------------------------------------------------------
+        # 5. Process sessions — batch resolve and create
+        # ------------------------------------------------------------------
         created = 0
         skipped = 0
 
+        # First pass: resolve all records, collect boomer names to create
+        resolved_sessions = []
         for record in sessions:
             if not isinstance(record, dict):
                 skipped += 1
@@ -263,41 +316,53 @@ class SyncPushView(APIView):
             category_ref = str(record.get("categoryId", ""))
             boomer_name = boomer_name_by_id.get(boomer_ref)
             category_payload = category_by_id.get(category_ref)
+
+            # Fallback: look up category by ID in DB (already preloaded)
             if not category_payload and category_ref:
-                existing_category = Category.objects.filter(id=category_ref).first()
-                if existing_category:
-                    category_payload = {
-                        "name": existing_category.name,
-                        "normalized_name": existing_category.normalized_name,
-                        "is_default": existing_category.is_default,
-                        "is_shared": existing_category.is_shared,
-                    }
+                # Check user-owned categories first, then default
+                for cat_map in (user_categories.values(), default_categories.values()):
+                    for c in cat_map:
+                        if c.id == category_ref:
+                            category_payload = {
+                                "name": c.name,
+                                "normalized_name": c.normalized_name,
+                                "is_default": c.is_default,
+                                "is_shared": c.is_shared,
+                            }
+                            break
+                    if category_payload:
+                        break
 
             if not boomer_name or not category_payload:
                 skipped += 1
                 continue
 
-            boomer, _ = Boomer.objects.get_or_create(
-                name=boomer_name, defaults={"cost": 0}
-            )
-            category = Category.objects.filter(
-                owner=request.user,
-                normalized_name=category_payload["normalized_name"],
-            ).first()
+            # Resolve boomer (create later if missing)
+            if boomer_name not in boomer_name_map:
+                if boomer_name not in {b.name for b in boomers_to_create}:
+                    boomers_to_create.append(Boomer(name=boomer_name, cost=0))
+            boomer = boomer_name_map.get(boomer_name)
+
+            # Resolve category from preloaded maps
+            norm = category_payload["normalized_name"]
+            category = user_categories.get(norm) or default_categories.get(norm)
             if not category:
-                category = Category.objects.filter(
-                    owner=None,
-                    normalized_name=category_payload["normalized_name"],
-                ).first()
-            if not category:
-                category = Category.objects.create(
+                # Create on-the-fly (shouldn't happen if category processing was correct,
+                # but handle edge case where category wasn't in payload)
+                category = Category(
                     id=f"category-{uuid.uuid4().hex[:12]}",
                     name=category_payload["name"],
                     is_default=bool(category_payload["is_default"]),
                     owner=None if category_payload["is_default"] else request.user,
                     is_shared=bool(category_payload.get("is_shared", False)),
                 )
+                categories_to_create.append(category)
+                if category.owner is None:
+                    default_categories[norm] = category
+                else:
+                    user_categories[norm] = category
 
+            # Parse timestamps
             started_at = record.get("startedAt")
             ended_at = record.get("endedAt")
             minutes = int(record.get("minutes", 0))
@@ -324,20 +389,104 @@ class SyncPushView(APIView):
             except (TypeError, ValueError):
                 cost_value = 0
 
-            _, created_flag = Session.objects.get_or_create(
-                owner=request.user,
-                boomer=boomer,
-                category=category,
-                minutes=minutes,
-                cost=max(0, cost_value),
-                start=started_dt,
-                end=ended_dt,
-                note=note,
+            resolved_sessions.append({
+                "boomer_name": boomer_name,
+                "boomer": boomer,  # may be None if new
+                "category": category,
+                "minutes": minutes,
+                "cost": max(0, cost_value),
+                "start": started_dt,
+                "end": ended_dt,
+                "note": note,
+            })
+
+        # Batch-create missing boomers
+        if boomers_to_create:
+            Boomer.objects.bulk_create(boomers_to_create, ignore_conflicts=True)
+            # Refresh boomer map
+            for b in boomers_to_create:
+                boomer_name_map[b.name] = b
+
+        # Batch-create missing categories from session fallback
+        if categories_to_create:
+            # Re-bulk-create only those not yet saved (no pk)
+            unsaved = [c for c in categories_to_create if c.pk is None]
+            if unsaved:
+                Category.objects.bulk_create(unsaved, ignore_conflicts=True)
+                for c in unsaved:
+                    if c.owner is None:
+                        default_categories[c.normalized_name] = c
+                    else:
+                        user_categories[c.normalized_name] = c
+
+        # Deduplicate resolved sessions by their unique key (same semantics as get_or_create)
+        # Then batch-check which ones already exist in DB
+        seen_keys = set()
+        unique_sessions = []
+        for rs in resolved_sessions:
+            key = (
+                request.user.id,
+                rs["boomer_name"],
+                rs["category"].id,
+                rs["minutes"],
+                rs["cost"],
+                rs["start"],
+                rs["end"],
+                rs["note"],
             )
-            if created_flag:
-                created += 1
+            if key not in seen_keys:
+                seen_keys.add(key)
+                unique_sessions.append(rs)
+
+        if unique_sessions:
+            # Build set of existing session signatures for this user
+            existing_signatures = set(
+                Session.objects.filter(owner=request.user).values_list(
+                    "boomer__name",
+                    "category_id",
+                    "minutes",
+                    "cost",
+                    "start",
+                    "end",
+                    "note",
+                )
+            )
+
+            sessions_to_create = []
+            for rs in unique_sessions:
+                boomer = boomer_name_map.get(rs["boomer_name"])
+                sig = (
+                    rs["boomer_name"],
+                    rs["category"].id,
+                    rs["minutes"],
+                    rs["cost"],
+                    rs["start"],
+                    rs["end"],
+                    rs["note"],
+                )
+                if sig not in existing_signatures and boomer:
+                    sessions_to_create.append(
+                        Session(
+                            owner=request.user,
+                            boomer=boomer,
+                            category=rs["category"],
+                            minutes=rs["minutes"],
+                            cost=rs["cost"],
+                            start=rs["start"],
+                            end=rs["end"],
+                            note=rs["note"],
+                        )
+                    )
+
+            if sessions_to_create:
+                Session.objects.bulk_create(sessions_to_create)
+                created = len(sessions_to_create)
+                skipped += len(unique_sessions) - created
             else:
-                skipped += 1
+                skipped += len(unique_sessions)
+        else:
+            # All were duplicates or invalid within the payload itself
+            pass
 
         return Response(
             {"created": created, "skipped": skipped, "total": len(sessions)}

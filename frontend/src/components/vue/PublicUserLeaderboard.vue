@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from './store/auth'
 import { getApiBaseUrl } from './lib/api'
+import StatusIndicator from './StatusIndicator.vue'
 
 type PublicUserRank = {
   rank: number
@@ -93,11 +94,23 @@ onMounted(() => {
       {{ rankProgressCopy }}
     </div>
 
-    <div v-if="isLoading" class="text-sm opacity-70">Loading public leaderboard...</div>
-    <div v-else-if="error" class="text-sm text-error">{{ error }}</div>
-    <div v-else-if="rows.length === 0" class="text-center py-8 text-opacity-60">
-      No public stats yet.
-    </div>
+    <StatusIndicator
+      v-if="isLoading"
+      state="loading"
+      message="Loading public leaderboard..."
+    />
+    <StatusIndicator
+      v-else-if="error"
+      state="error"
+      :message="error"
+      action-label="Retry"
+      @action="loadLeaderboard"
+    />
+    <StatusIndicator
+      v-else-if="rows.length === 0"
+      state="empty"
+      message="No public stats yet."
+    />
 
     <div
       v-for="item in rows.slice(0, 20)"

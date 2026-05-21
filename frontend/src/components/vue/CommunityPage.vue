@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from './store/auth'
 import PublicUserLeaderboard from './PublicUserLeaderboard.vue'
+import StatusIndicator from './StatusIndicator.vue'
 import { getApiBaseUrl } from './lib/api'
 
 type MessagePost = {
@@ -51,6 +52,10 @@ const loadingReplies = ref<Record<number, boolean>>({})
 const submittingReplies = ref<Record<number, boolean>>({})
 const replyErrors = ref<Record<number, string>>({})
 
+let postsRequestToken = 0
+let wallRequestToken = 0
+let replyControllers = new Map<number, AbortController>()
+
 function authHeaders() {
   if (!auth.token) return {}
   return { Authorization: `Token ${auth.token}` }
@@ -61,6 +66,7 @@ function formatDate(value: string) {
 }
 
 async function loadPosts() {
+  const token = ++postsRequestToken
   isLoading.value = true
   error.value = ''
   try {
@@ -72,6 +78,7 @@ async function loadPosts() {
         }
       }
     )
+    if (token !== postsRequestToken) return
     if (!response.ok) {
       if (response.status === 401 && messageScope.value === 'following') {
         throw new Error('Sign in to view your following feed.')
@@ -80,9 +87,12 @@ async function loadPosts() {
     }
     posts.value = await response.json() as MessagePost[]
   } catch (err) {
+    if (token !== postsRequestToken) return
     error.value = err instanceof Error ? err.message : 'Failed to load messages'
   } finally {
-    isLoading.value = false
+    if (token === postsRequestToken) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -104,17 +114,31 @@ async function setMessageScope(nextScope: 'all' | 'following') {
 }
 
 async function loadReplies(postId: number) {
+  const existingController = replyControllers.get(postId)
+  if (existingController) {
+    existingController.abort()
+  }
+
+  const controller = new AbortController()
+  replyControllers.set(postId, controller)
+
   loadingReplies.value[postId] = true
   replyErrors.value[postId] = ''
   try {
-    const response = await fetch(`${apiBaseUrl}/api/public/messages/${postId}/replies/`)
+    const response = await fetch(`${apiBaseUrl}/api/public/messages/${postId}/replies/`, {
+      signal: controller.signal
+    })
     if (!response.ok) {
       throw new Error('Could not load replies')
     }
     replyLists.value[postId] = await response.json() as MessageReply[]
   } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return
     replyErrors.value[postId] = err instanceof Error ? err.message : 'Failed to load replies'
   } finally {
+    if (replyControllers.get(postId) === controller) {
+      replyControllers.delete(postId)
+    }
     loadingReplies.value[postId] = false
   }
 }
@@ -199,18 +223,23 @@ async function submitPost() {
 }
 
 async function loadWall() {
+  const token = ++wallRequestToken
   isWallLoading.value = true
   wallError.value = ''
   try {
     const response = await fetch(`${apiBaseUrl}/api/public/wall/boomers/?sort=${wallSort.value}`)
+    if (token !== wallRequestToken) return
     if (!response.ok) {
       throw new Error('Could not load wall of shame')
     }
     wallItems.value = await response.json() as BoomerWallItem[]
   } catch (err) {
+    if (token !== wallRequestToken) return
     wallError.value = err instanceof Error ? err.message : 'Failed to load wall of shame'
   } finally {
-    isWallLoading.value = false
+    if (token === wallRequestToken) {
+      isWallLoading.value = false
+    }
   }
 }
 
@@ -223,6 +252,13 @@ async function setWallSort(nextSort: 'top' | 'new') {
 onMounted(() => {
   loadPosts()
   loadWall()
+})
+
+onUnmounted(() => {
+  for (const controller of replyControllers.values()) {
+    controller.abort()
+  }
+  replyControllers.clear()
 })
 </script>
 
@@ -291,9 +327,23 @@ onMounted(() => {
             Create a free account to post, reply, and follow users.
           </div>
 
-          <div v-if="isLoading" class="text-sm opacity-70">Loading posts...</div>
-          <div v-else-if="error" class="text-sm text-error">{{ error }}</div>
-          <div v-else-if="posts.length === 0" class="text-sm opacity-70">No posts yet. Be the first.</div>
+          <StatusIndicator
+            v-if="isLoading"
+            state="loading"
+            message="Loading posts..."
+          />
+          <StatusIndicator
+            v-else-if="error"
+            state="error"
+            :message="error"
+            action-label="Retry"
+            @action="loadPosts"
+          />
+          <StatusIndicator
+            v-else-if="posts.length === 0"
+            state="empty"
+            message="No posts yet. Be the first."
+          />
 
           <div v-else class="space-y-2">
             <div v-for="post in posts" :key="post.id" class="rounded-lg border border-base-300 bg-base-300 p-3">
@@ -309,11 +359,23 @@ onMounted(() => {
               </div>
 
               <div v-if="expandedPosts[post.id]" class="mt-3 space-y-2 border-t border-base-100 pt-2">
-                <div v-if="loadingReplies[post.id]" class="text-xs opacity-70">Loading replies...</div>
-                <div v-else-if="replyErrors[post.id]" class="text-xs text-error">{{ replyErrors[post.id] }}</div>
-                <div v-else-if="!replyLists[post.id] || replyLists[post.id].length === 0" class="text-xs opacity-70">
-                  No replies yet.
-                </div>
+                <StatusIndicator
+                  v-if="loadingReplies[post.id]"
+                  state="loading"
+                  message="Loading replies..."
+                />
+                <StatusIndicator
+                  v-else-if="replyErrors[post.id]"
+                  state="error"
+                  :message="replyErrors[post.id]"
+                  action-label="Retry"
+                  @action="loadReplies(post.id)"
+                />
+                <StatusIndicator
+                  v-else-if="!replyLists[post.id] || replyLists[post.id].length === 0"
+                  state="empty"
+                  message="No replies yet."
+                />
 
                 <div v-else class="space-y-1">
                   <div v-for="reply in replyLists[post.id]" :key="reply.id" class="rounded bg-base-100 p-2">
@@ -363,9 +425,23 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="isWallLoading" class="text-sm opacity-70">Loading wall...</div>
-          <div v-else-if="wallError" class="text-sm text-error">{{ wallError }}</div>
-          <div v-else-if="wallItems.length === 0" class="text-sm opacity-70">No boomer shame data yet.</div>
+          <StatusIndicator
+            v-if="isWallLoading"
+            state="loading"
+            message="Loading wall..."
+          />
+          <StatusIndicator
+            v-else-if="wallError"
+            state="error"
+            :message="wallError"
+            action-label="Retry"
+            @action="loadWall"
+          />
+          <StatusIndicator
+            v-else-if="wallItems.length === 0"
+            state="empty"
+            message="No boomer shame data yet."
+          />
 
           <div v-else class="space-y-2">
             <div

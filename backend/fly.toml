@@ -1,16 +1,13 @@
 # fly.toml app configuration file generated for boomerbill-api on 2026-03-22T04:02:01-04:00
 #
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+# See https://fly.io/docs/reference/configuration/ for information about how to use the file.
 #
 
 app = 'boomerbill-api'
 primary_region = 'iad'
-console_command = 'python /app/core/manage.py shell'
+console_command = 'sh -c "cd /app/core && uv run python manage.py shell"'
 
 [build]
-
-[deploy]
-  release_command = 'sh -c "cd /app/core && uv run python manage.py migrate"'
 
 [env]
   PORT = '8000'

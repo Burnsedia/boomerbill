@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -11,6 +11,8 @@ const isInstalling = ref(false)
 const isInstalled = ref(false)
 const deferredPrompt = ref<InstallPromptEvent | null>(null)
 const isIos = ref(false)
+
+let beforeinstallpromptHandler: ((event: Event) => void) | null = null
 
 const canInstall = computed(() => !isInstalled.value && Boolean(deferredPrompt.value))
 
@@ -57,10 +59,18 @@ onMounted(() => {
     }
   }
 
-  window.addEventListener('beforeinstallprompt', (event) => {
+  beforeinstallpromptHandler = (event: Event) => {
     event.preventDefault()
     deferredPrompt.value = event as InstallPromptEvent
-  })
+  }
+  window.addEventListener('beforeinstallprompt', beforeinstallpromptHandler)
+})
+
+onUnmounted(() => {
+  if (beforeinstallpromptHandler) {
+    window.removeEventListener('beforeinstallprompt', beforeinstallpromptHandler)
+    beforeinstallpromptHandler = null
+  }
 })
 </script>
 

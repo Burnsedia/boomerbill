@@ -48,8 +48,9 @@ class BoomerStatsApiTests(APITestCase):
         response = self.client.get("/api/boomers/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        payload = response.data[0]
+        results = response.data["results"]
+        self.assertEqual(len(results), 1)
+        payload = results[0]
         self.assertEqual(payload["name"], "Dad")
         self.assertEqual(payload["total_sessions"], 2)
         self.assertEqual(payload["total_minutes"], 30)

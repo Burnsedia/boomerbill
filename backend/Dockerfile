@@ -12,6 +12,8 @@ RUN uv sync --frozen --no-dev
 
 COPY . /app
 
+RUN chmod +x /app/scripts/entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "cd /app/core && uv run gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]

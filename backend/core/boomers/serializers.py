@@ -32,12 +32,30 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class BoomerSerializer(serializers.ModelSerializer):
-    total_sessions = serializers.IntegerField(read_only=True)
-    total_minutes = serializers.IntegerField(read_only=True)
-    total_cost = serializers.IntegerField(read_only=True)
-    avg_minutes = serializers.FloatField(read_only=True)
-    avg_cost = serializers.FloatField(read_only=True)
-    last_session_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    total_sessions = serializers.IntegerField(read_only=True, default=0)
+    total_minutes = serializers.IntegerField(read_only=True, default=0)
+    total_cost = serializers.IntegerField(read_only=True, default=0)
+    avg_minutes = serializers.FloatField(read_only=True, default=0.0)
+    avg_cost = serializers.FloatField(read_only=True, default=0.0)
+    last_session_at = serializers.DateTimeField(
+        read_only=True, allow_null=True, default=None
+    )
+
+    def to_representation(self, instance):
+        # When aggregates are not annotated (list view), the model instance
+        # won't have these attributes. Provide safe defaults.
+        data = super().to_representation(instance)
+        for field in (
+            "total_sessions",
+            "total_minutes",
+            "total_cost",
+            "avg_minutes",
+            "avg_cost",
+            "last_session_at",
+        ):
+            if field not in data or data[field] is None:
+                data[field] = self.fields[field].default
+        return data
 
     class Meta:
         model = Boomer

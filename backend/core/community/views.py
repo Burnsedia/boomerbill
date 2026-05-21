@@ -203,14 +203,26 @@ class PublicBoomerWallView(APIView):
 
     def get(self, request):
         sort = request.query_params.get("sort", "top")
-        rows = list(
-            Boomer.objects.annotate(
-                total_sessions=Count("boomer_sessions"),
-                total_cost=Coalesce(Sum("boomer_sessions__cost"), 0),
-                last_session_at=Max("boomer_sessions__end"),
-            ).filter(total_sessions__gt=0)
-        )
 
+        # Build the base annotated queryset — filter to boomers with sessions.
+        base_qs = Boomer.objects.annotate(
+            total_sessions=Count("boomer_sessions"),
+            total_cost=Coalesce(Sum("boomer_sessions__cost"), 0),
+            last_session_at=Max("boomer_sessions__end"),
+        ).filter(total_sessions__gt=0)
+
+        # Push ordering AND limit into SQL. Only the top-N rows are fetched
+        # from the database, avoiding materializing the entire table.
+        if sort == "new":
+            # Coalesce NULL last_session_at to a distant past so they sort last.
+            qs = base_qs.order_by("-last_session_at")[:100]
+        else:
+            qs = base_qs.order_by("-total_cost")[:100]
+
+        rows = list(qs)
+
+        # Only compute top-category aggregates for the boomers in the final
+        # result set — not for every boomer in the database.
         boomer_ids = [row.id for row in rows]
         top_category_map = {}
         if boomer_ids:
@@ -218,10 +230,14 @@ class PublicBoomerWallView(APIView):
                 Session.objects.filter(boomer_id__in=boomer_ids)
                 .values("boomer_id", "category__name")
                 .annotate(
-                    category_cost=Coalesce(Sum("cost"), 0), category_count=Count("id")
+                    category_cost=Coalesce(Sum("cost"), 0),
+                    category_count=Count("id"),
                 )
                 .order_by(
-                    "boomer_id", "-category_cost", "-category_count", "category__name"
+                    "boomer_id",
+                    "-category_cost",
+                    "-category_count",
+                    "category__name",
                 )
             )
             for item in category_rows:
@@ -229,17 +245,8 @@ class PublicBoomerWallView(APIView):
                 if key not in top_category_map:
                     top_category_map[key] = item["category__name"]
 
-        if sort == "new":
-            rows.sort(
-                key=lambda item: item.last_session_at
-                or datetime.min.replace(tzinfo=timezone.utc),
-                reverse=True,
-            )
-        else:
-            rows.sort(key=lambda item: item.total_cost, reverse=True)
-
         payload = []
-        for index, row in enumerate(rows[:100]):
+        for index, row in enumerate(rows):
             payload.append(
                 {
                     "rank": index + 1,

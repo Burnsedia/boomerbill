@@ -77,6 +77,18 @@ type PullPayload = {
   }>
 }
 
+type TimeWindowStats = {
+  minutes: number
+  cost: number
+  count: number
+}
+
+type TrendResult = {
+  change: number
+  percentChange: number
+  direction: 'up' | 'down' | 'same'
+}
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'wifi', name: 'WiFi Issues', icon: 'wifi', isDefault: true },
   { id: 'printer', name: 'Printer Problems', icon: 'printer', isDefault: true },
