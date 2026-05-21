@@ -224,7 +224,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function resetPasswordConfirm(uid: string, tokenValue: string, newPassword: string) {
-    const response = await fetch(`${apiBaseUrl}/api/auth/users/reset_password_confirm/`, {
+    const response = await fetch(`${getApiBaseUrl()}/api/auth/users/reset_password_confirm/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -257,8 +257,8 @@ export const useAuthStore = defineStore('auth', () => {
       const isLegacyToken = authSession.value?.scheme === 'Token'
       const hasRefresh = Boolean(authSession.value?.refreshToken)
       const logoutUrl = isLegacyToken
-        ? `${apiBaseUrl}/api/auth/token/logout/`
-        : `${apiBaseUrl}/api/auth/jwt/blacklist/`
+        ? `${getApiBaseUrl()}/api/auth/token/logout/`
+        : `${getApiBaseUrl()}/api/auth/jwt/blacklist/`
 
       const body = !isLegacyToken && hasRefresh
         ? JSON.stringify({ refresh: authSession.value?.refreshToken })

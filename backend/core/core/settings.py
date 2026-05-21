@@ -231,6 +231,7 @@ SIMPLE_JWT = {
 DOMAIN = env("PUBLIC_DOMAIN", default="localhost:4321")
 SITE_NAME = env("SITE_NAME", default="BoomerBill")
 
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=False)
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=False)
 
@@ -240,6 +241,10 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 # Production-hardening: require explicit origins when DEBUG=False
 # ---------------------------------------------------------------------------
 if not DEBUG:
+    if CORS_ALLOW_ALL_ORIGINS:
+        raise ImproperlyConfigured(
+            "CORS_ALLOW_ALL_ORIGINS must be False when DJANGO_DEBUG=False"
+        )
     if not CSRF_TRUSTED_ORIGINS:
         raise ImproperlyConfigured(
             "CSRF_TRUSTED_ORIGINS must be set to explicit origins when DJANGO_DEBUG=False"

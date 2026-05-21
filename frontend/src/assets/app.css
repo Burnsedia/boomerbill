@@ -41,3 +41,52 @@
   --depth: 0;
   --noise: 0;
 }
+
+/* Mobile navigation scroll utilities */
+@media (max-width: 639px) {
+  .nav-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+  }
+
+  .nav-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-scroll-container.has-overflow-left {
+    mask-image: linear-gradient(to right, black 0%, black 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 100%);
+  }
+
+  .nav-scroll-container.has-overflow-right {
+    mask-image: linear-gradient(to right, transparent 0%, black 12px, black 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black 100%);
+  }
+
+  .nav-scroll-container.has-overflow-both {
+    mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+  }
+}
+
+/* Minimum 44px tap target for accessibility */
+.tap-target-min {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Priority nav: first N items stay visible on mobile */
+@media (max-width: 639px) {
+  .priority-nav {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .priority-nav .priority-item {
+    flex-shrink: 0;
+  }
+}
