@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.spec.{js,ts}'],
+    exclude: ['tests/e2e/**', 'node_modules/**'],
 
 
   }
