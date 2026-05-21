@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from './store/auth'
+import { fetchPasswordResetDeliveryMessage } from './lib/api'
 
 const auth = useAuthStore()
 const emit = defineEmits<{
@@ -36,7 +37,8 @@ async function submit() {
       await auth.register(credentials)
     } else if (mode.value === 'forgot') {
       await auth.requestPasswordReset(email.value)
-      successMessage.value = 'Password reset sent. Check your email inbox.'
+      const deliveryHint = await fetchPasswordResetDeliveryMessage()
+      successMessage.value = `Password reset request sent. ${deliveryHint}`
       return
     } else {
       await auth.login(credentials)

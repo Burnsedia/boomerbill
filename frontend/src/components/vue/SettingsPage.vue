@@ -5,6 +5,7 @@ import BoomerManager from './BoomerManager.vue'
 import CategoryManager from './CategoryManager.vue'
 import { useAuthStore } from './store/auth'
 import { useBoomerBill } from './store/boomerbills'
+import { fetchPasswordResetDeliveryMessage } from './lib/api'
 
 const auth = useAuthStore()
 const store = useBoomerBill()
@@ -53,7 +54,8 @@ async function sendRecoveryEmail() {
     }
 
     await auth.requestPasswordReset(auth.email)
-    recoveryMessage.value = `Recovery email sent to ${auth.email}. Check your inbox.`
+    const deliveryHint = await fetchPasswordResetDeliveryMessage()
+    recoveryMessage.value = `Recovery email request sent to ${auth.email}. ${deliveryHint}`
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not send recovery email.'
     recoveryError.value = message

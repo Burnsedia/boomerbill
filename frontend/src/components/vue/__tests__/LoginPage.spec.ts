@@ -65,4 +65,23 @@ describe('LoginPage.vue', () => {
     expect(fetchMock.mock.calls[3]?.[0]).toContain('/api/sync/pull/')
     expect(fetchMock.mock.calls[4]?.[0]).toContain('/api/sync/push/')
   })
+
+  it('submits forgot-password request and shows local console guidance', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const wrapper = mount(LoginPage, { global: { plugins: [pinia] } })
+    await wrapper.findAll('button.tab')[2].trigger('click')
+    await wrapper.find('input[type="email"]').setValue('tester@example.com')
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/auth/users/reset_password/'))).toBe(true)
+    expect(wrapper.text()).toContain('Password reset request sent.')
+    expect(wrapper.text()).toContain('check backend logs for the reset link')
+  })
 })
