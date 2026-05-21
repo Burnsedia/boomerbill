@@ -71,6 +71,7 @@ const config = parseArgs()
 // ── jsdom bootstrap (must happen before any Vue/Pinia import) ────────────────
 
 import { JSDOM } from 'jsdom'
+import { performance as nodePerformance } from 'node:perf_hooks'
 
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
   url: 'http://localhost:4321',
@@ -81,12 +82,19 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
 globalThis.window = dom.window
 // @ts-expect-error - jsdom provides browser globals
 globalThis.document = dom.window.document
-// @ts-expect-error - jsdom provides browser globals
-globalThis.navigator = dom.window.navigator
+Object.defineProperty(globalThis, 'navigator', {
+  value: dom.window.navigator,
+  writable: true,
+  configurable: true,
+})
 // @ts-expect-error - jsdom provides browser globals
 globalThis.localStorage = dom.window.localStorage
-// @ts-expect-error - jsdom provides browser globals
-globalThis.performance = dom.window.performance ?? globalThis.performance
+// Use Node.js native performance (jsdom's has recursion issues with .now())
+Object.defineProperty(globalThis, 'performance', {
+  value: nodePerformance,
+  writable: true,
+  configurable: true,
+})
 
 // ── Mock clipboard API (used by LoggingPage) ─────────────────────────────────
 
@@ -99,7 +107,7 @@ globalThis.navigator.clipboard = {
 // ── Vue / Pinia imports (after jsdom) ────────────────────────────────────────
 
 import { createPinia, setActivePinia } from 'pinia'
-import { useBoomerBill, type Session } from './src/components/vue/store/boomerbills'
+import { useBoomerBill, type Session } from '../src/components/vue/store/boomerbills'
 
 // ── Session seeding helpers ──────────────────────────────────────────────────
 

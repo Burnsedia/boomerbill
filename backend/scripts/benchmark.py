@@ -21,7 +21,7 @@ import statistics
 import sys
 import time
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _pytz
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -39,7 +39,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection, reset_queries
 from django.test import RequestFactory, override_settings
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
+from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from boomers.models import Boomer, Category, Session
@@ -168,19 +170,18 @@ def track_queries():
     queries_before = len(connection.queries)
     start = time.perf_counter()
 
+    result = {}
     try:
-        yield
+        yield result
     finally:
         elapsed = time.perf_counter() - start
         queries_after = len(connection.queries)
         query_count = queries_after - queries_before
         django_settings.DEBUG = original_debug
 
-        yield_result = {
-            "query_count": query_count,
-            "elapsed": elapsed,
-            "queries": list(connection.queries[queries_before:]),
-        }
+        result["query_count"] = query_count
+        result["elapsed"] = elapsed
+        result["queries"] = list(connection.queries[queries_before:])
 
 
 # ---------------------------------------------------------------------------
@@ -255,9 +256,8 @@ def benchmark_boomer_list(runs: int) -> dict:
     query_counts = []
 
     for _ in range(runs):
-        request = factory.get("/api/boomers/")
-        request.META["SERVER_NAME"] = "localhost"
-        request.META["SERVER_PORT"] = "8000"
+        wsgi_request = factory.get("/api/boomers/")
+        request = Request(wsgi_request)
 
         with track_queries() as result:
             view = BoomerViewSet(request=request)
@@ -538,7 +538,7 @@ def _ascii_table(results: list[dict]) -> str:
     lines = []
     lines.append("=" * 90)
     lines.append("  BOOMERBILL BACKEND BENCHMARK RESULTS")
-    lines.append(f"  Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    lines.append(f"  Date: {datetime.now(_pytz.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
     lines.append(f"  Database: {connection.vendor} ({connection.settings_dict['NAME']})")
     lines.append("=" * 90)
     lines.append("")
@@ -632,7 +632,7 @@ def main():
     # Output
     if args.json:
         output = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(_pytz.utc).isoformat(),
             "database": {
                 "vendor": connection.vendor,
                 "name": connection.settings_dict["NAME"],

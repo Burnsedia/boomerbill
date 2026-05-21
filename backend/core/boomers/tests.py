@@ -108,6 +108,130 @@ class SyncApiTests(APITestCase):
         self.assertEqual(len(response.data["sessions"]), 1)
         self.assertEqual(response.data["sessions"][0]["boomerName"], "Sync Dad")
 
+    def test_pull_backward_compat_no_params_returns_all(self):
+        """Without cursor/limit, response should NOT include pagination metadata."""
+        now = timezone.now()
+        for i in range(5):
+            Session.objects.create(
+                owner=self.owner,
+                boomer=self.boomer,
+                category=self.category,
+                minutes=10,
+                cost=1000,
+                start=now - timedelta(minutes=(5 - i) * 10),
+                end=now - timedelta(minutes=(5 - i) * 10 - 5),
+                note=f"session {i}",
+            )
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get("/api/sync/pull/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["sessions"]), 5)
+        self.assertNotIn("nextCursor", response.data)
+        self.assertNotIn("hasMore", response.data)
+
+    def test_pull_with_limit_returns_subset_and_metadata(self):
+        now = timezone.now()
+        for i in range(5):
+            Session.objects.create(
+                owner=self.owner,
+                boomer=self.boomer,
+                category=self.category,
+                minutes=10,
+                cost=1000,
+                start=now - timedelta(minutes=(5 - i) * 10),
+                end=now - timedelta(minutes=(5 - i) * 10 - 5),
+                note=f"session {i}",
+            )
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get("/api/sync/pull/", {"limit": 2})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["sessions"]), 2)
+        self.assertTrue(response.data["hasMore"])
+        self.assertIsNotNone(response.data["nextCursor"])
+
+    def test_pull_with_cursor_returns_sessions_after_cursor(self):
+        now = timezone.now()
+        sessions = []
+        for i in range(5):
+            s = Session.objects.create(
+                owner=self.owner,
+                boomer=self.boomer,
+                category=self.category,
+                minutes=10,
+                cost=1000,
+                start=now - timedelta(minutes=(5 - i) * 10),
+                end=now - timedelta(minutes=(5 - i) * 10 - 5),
+                note=f"session {i}",
+            )
+            sessions.append(s)
+
+        # Use the 3rd session's start time as cursor (index 2)
+        cursor_ms = int(sessions[2].start.timestamp() * 1000)
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get("/api/sync/pull/", {"cursor": cursor_ms})
+
+        self.assertEqual(response.status_code, 200)
+        # Should return sessions 3 and 4 (start > cursor)
+        self.assertEqual(len(response.data["sessions"]), 2)
+        self.assertEqual(response.data["sessions"][0]["note"], "session 3")
+        self.assertEqual(response.data["sessions"][1]["note"], "session 4")
+
+    def test_pull_cursor_and_limit_combined(self):
+        now = timezone.now()
+        sessions = []
+        for i in range(10):
+            s = Session.objects.create(
+                owner=self.owner,
+                boomer=self.boomer,
+                category=self.category,
+                minutes=10,
+                cost=1000,
+                start=now - timedelta(minutes=(10 - i) * 10),
+                end=now - timedelta(minutes=(10 - i) * 10 - 5),
+                note=f"session {i}",
+            )
+            sessions.append(s)
+
+        # Cursor past first 3 sessions, limit of 2
+        cursor_ms = int(sessions[2].start.timestamp() * 1000)
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get(
+            "/api/sync/pull/", {"cursor": cursor_ms, "limit": 2}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["sessions"]), 2)
+        self.assertEqual(response.data["sessions"][0]["note"], "session 3")
+        self.assertEqual(response.data["sessions"][1]["note"], "session 4")
+        self.assertTrue(response.data["hasMore"])
+
+    def test_pull_last_page_has_no_more(self):
+        now = timezone.now()
+        for i in range(3):
+            Session.objects.create(
+                owner=self.owner,
+                boomer=self.boomer,
+                category=self.category,
+                minutes=10,
+                cost=1000,
+                start=now - timedelta(minutes=(3 - i) * 10),
+                end=now - timedelta(minutes=(3 - i) * 10 - 5),
+                note=f"session {i}",
+            )
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get("/api/sync/pull/", {"limit": 10})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["sessions"]), 3)
+        self.assertFalse(response.data["hasMore"])
+
     def test_pull_includes_shared_categories_separately(self):
         user_model = get_user_model()
         other = user_model.objects.create_user(
@@ -287,127 +411,3 @@ class CategorySharingApiTests(APITestCase):
                 id="category-1774067302349", owner=self.owner
             ).exists()
         )
-
-    def test_pull_backward_compat_no_params_returns_all(self):
-        """Without cursor/limit, response should NOT include pagination metadata."""
-        now = timezone.now()
-        for i in range(5):
-            Session.objects.create(
-                owner=self.owner,
-                boomer=self.boomer,
-                category=self.category,
-                minutes=10,
-                cost=1000,
-                start=now - timedelta(minutes=(5 - i) * 10),
-                end=now - timedelta(minutes=(5 - i) * 10 - 5),
-                note=f"session {i}",
-            )
-
-        self.client.force_authenticate(self.owner)
-        response = self.client.get("/api/sync/pull/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["sessions"]), 5)
-        self.assertNotIn("nextCursor", response.data)
-        self.assertNotIn("hasMore", response.data)
-
-    def test_pull_with_limit_returns_subset_and_metadata(self):
-        now = timezone.now()
-        for i in range(5):
-            Session.objects.create(
-                owner=self.owner,
-                boomer=self.boomer,
-                category=self.category,
-                minutes=10,
-                cost=1000,
-                start=now - timedelta(minutes=(5 - i) * 10),
-                end=now - timedelta(minutes=(5 - i) * 10 - 5),
-                note=f"session {i}",
-            )
-
-        self.client.force_authenticate(self.owner)
-        response = self.client.get("/api/sync/pull/", {"limit": 2})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["sessions"]), 2)
-        self.assertTrue(response.data["hasMore"])
-        self.assertIsNotNone(response.data["nextCursor"])
-
-    def test_pull_with_cursor_returns_sessions_after_cursor(self):
-        now = timezone.now()
-        sessions = []
-        for i in range(5):
-            s = Session.objects.create(
-                owner=self.owner,
-                boomer=self.boomer,
-                category=self.category,
-                minutes=10,
-                cost=1000,
-                start=now - timedelta(minutes=(5 - i) * 10),
-                end=now - timedelta(minutes=(5 - i) * 10 - 5),
-                note=f"session {i}",
-            )
-            sessions.append(s)
-
-        # Use the 3rd session's start time as cursor (index 2)
-        cursor_ms = int(sessions[2].start.timestamp() * 1000)
-
-        self.client.force_authenticate(self.owner)
-        response = self.client.get("/api/sync/pull/", {"cursor": cursor_ms})
-
-        self.assertEqual(response.status_code, 200)
-        # Should return sessions 3 and 4 (start > cursor)
-        self.assertEqual(len(response.data["sessions"]), 2)
-        self.assertEqual(response.data["sessions"][0]["note"], "session 3")
-        self.assertEqual(response.data["sessions"][1]["note"], "session 4")
-
-    def test_pull_cursor_and_limit_combined(self):
-        now = timezone.now()
-        sessions = []
-        for i in range(10):
-            s = Session.objects.create(
-                owner=self.owner,
-                boomer=self.boomer,
-                category=self.category,
-                minutes=10,
-                cost=1000,
-                start=now - timedelta(minutes=(10 - i) * 10),
-                end=now - timedelta(minutes=(10 - i) * 10 - 5),
-                note=f"session {i}",
-            )
-            sessions.append(s)
-
-        # Cursor past first 3 sessions, limit of 2
-        cursor_ms = int(sessions[2].start.timestamp() * 1000)
-
-        self.client.force_authenticate(self.owner)
-        response = self.client.get(
-            "/api/sync/pull/", {"cursor": cursor_ms, "limit": 2}
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["sessions"]), 2)
-        self.assertEqual(response.data["sessions"][0]["note"], "session 3")
-        self.assertEqual(response.data["sessions"][1]["note"], "session 4")
-        self.assertTrue(response.data["hasMore"])
-
-    def test_pull_last_page_has_no_more(self):
-        now = timezone.now()
-        for i in range(3):
-            Session.objects.create(
-                owner=self.owner,
-                boomer=self.boomer,
-                category=self.category,
-                minutes=10,
-                cost=1000,
-                start=now - timedelta(minutes=(3 - i) * 10),
-                end=now - timedelta(minutes=(3 - i) * 10 - 5),
-                note=f"session {i}",
-            )
-
-        self.client.force_authenticate(self.owner)
-        response = self.client.get("/api/sync/pull/", {"limit": 10})
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["sessions"]), 3)
-        self.assertFalse(response.data["hasMore"])
