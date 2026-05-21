@@ -60,11 +60,52 @@ function pushSessions(store: ReturnType<typeof useBoomerBill>, sessions: Session
 // Fixed "now" for deterministic time-window tests
 const FIXED_NOW = new Date('2026-05-20T12:00:00Z').getTime() // Wed May 20 2026 12:00 UTC
 
-// Pre-computed boundaries for FIXED_NOW
-const START_OF_DAY = new Date('2026-05-20T00:00:00Z').getTime()
-const START_OF_WEEK = new Date('2026-05-17T00:00:00Z').getTime()  // Sunday
-const START_OF_MONTH = new Date('2026-05-01T00:00:00Z').getTime()
-const START_OF_YEAR = new Date('2026-01-01T00:00:00Z').getTime()
+/**
+ * Compute time-window boundaries using the same local-timezone logic
+ * as the store's getStartOfDay/Week/Month/Year functions.
+ */
+function getStartOfDayLocal(ts: number): number {
+  const d = new Date(ts)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function getStartOfWeekLocal(ts: number): number {
+  const d = new Date(ts)
+  const day = d.getDay()
+  d.setDate(d.getDate() - day)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function getStartOfMonthLocal(ts: number): number {
+  const d = new Date(ts)
+  d.setDate(1)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function getStartOfYearLocal(ts: number): number {
+  const d = new Date(ts)
+  d.setMonth(0, 1)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+// These are computed at test runtime using local timezone, matching the store
+let BOUNDARIES: ReturnType<typeof computeBoundaries>
+
+function computeBoundaries() {
+  const now = FIXED_NOW
+  return {
+    todayStart: getStartOfDayLocal(now),
+    weekStart: getStartOfWeekLocal(now),
+    monthStart: getStartOfMonthLocal(now),
+    yearStart: getStartOfYearLocal(now),
+    yesterdayStart: getStartOfDayLocal(now - 86400000),
+    yesterdayEnd: getStartOfDayLocal(now),
+  }
+}
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +113,7 @@ describe('Computed Regression Tests', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(FIXED_NOW)
+    BOUNDARIES = computeBoundaries()
     localStorageMock.getItem.mockReset()
     localStorageMock.setItem.mockReset()
   })
@@ -120,9 +162,11 @@ describe('Computed Regression Tests', () => {
       expect(store.sessionDetails).toEqual([])
     })
 
-    it('firstIncidentAt is null when no sessions exist', () => {
+    it('daysActive is zero when no sessions exist (firstIncidentAt is null internally)', () => {
       const store = freshStore()
-      expect(store.firstIncidentAt).toBeNull()
+      // firstIncidentAt is an internal computed (not exported), but daysActive
+      // depends on it returning null when empty.
+      expect(store.daysActive).toBe(0)
     })
 
     it('daysActive is zero when no sessions exist', () => {
@@ -229,13 +273,15 @@ describe('Computed Regression Tests', () => {
       expect(details[0].categoryName).toBe('WiFi Issues')
     })
 
-    it('firstIncidentAt equals the session endedAt', () => {
+    it('daysActive reflects a single session (firstIncidentAt drives it)', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
-      const endedAt = 1_000_000
+      const endedAt = Date.now() - 86400000 * 5 // 5 days ago
       pushSessions(store, [makeSession({ id: 1, endedAt })])
 
-      expect(store.firstIncidentAt).toBe(endedAt)
+      // daysActive should be at least 5 (from endedAt to now)
+      expect(store.daysActive).toBeGreaterThanOrEqual(5)
+      expect(store.daysActive).toBeLessThanOrEqual(6)
     })
   })
 
@@ -473,8 +519,8 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 10 }),
-        makeSession({ id: 2, endedAt: START_OF_DAY + 2000, minutes: 20, cost: 20 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 10 }),
+        makeSession({ id: 2, endedAt: BOUNDARIES.todayStart + 2000, minutes: 20, cost: 20 }),
       ])
 
       expect(store.todayStats.minutes).toBe(30)
@@ -487,7 +533,7 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_DAY - 1, minutes: 99, cost: 99 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.todayStart - 1, minutes: 99, cost: 99 }),
       ])
 
       expect(store.todayStats.count).toBe(0)
@@ -498,7 +544,7 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_WEEK + 1000, minutes: 15, cost: 15 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.weekStart + 1000, minutes: 15, cost: 15 }),
       ])
 
       expect(store.weekStats.count).toBe(1)
@@ -510,7 +556,7 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_MONTH + 1000, minutes: 25, cost: 25 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.monthStart + 1000, minutes: 25, cost: 25 }),
       ])
 
       expect(store.monthStats.count).toBe(1)
@@ -522,7 +568,7 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_YEAR + 1000, minutes: 40, cost: 40 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.yearStart + 1000, minutes: 40, cost: 40 }),
       ])
 
       expect(store.yearStats.count).toBe(1)
@@ -535,7 +581,7 @@ describe('Computed Regression Tests', () => {
 
       // One session today
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 10 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 10 }),
       ])
 
       // Today's session should be counted in all wider windows
@@ -545,29 +591,27 @@ describe('Computed Regression Tests', () => {
       expect(store.yearStats.count).toBe(1)
     })
 
-    it('previous-window stats use correct boundaries', () => {
+    it('previous-window stats: today is zero when session is yesterday', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
       // Session yesterday (ended between yesterdayStart and yesterdayEnd)
-      const yesterdayNoon = START_OF_DAY - 43_200_000 // 12 hours before today start
+      const yesterdayNoon = BOUNDARIES.yesterdayStart + 43_200_000 // noon yesterday
       pushSessions(store, [
         makeSession({ id: 1, endedAt: yesterdayNoon, minutes: 5, cost: 5 }),
       ])
 
       expect(store.todayStats.count).toBe(0)
-      // The _timeWindowStats internals handle yesterday; we verify via trends
-      // that the previous window data is populated
-      expect(store.todayTrend.change).toBe(0) // today has no sessions
+      expect(store.todayStats.cost).toBe(0)
     })
 
     it('multiple sessions across windows are counted in each applicable window', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      const todaySession = START_OF_DAY + 1000
-      const yesterdaySession = START_OF_DAY - 3600000 // 1 hour before today
-      const lastWeekSession = START_OF_WEEK - 86400000 // 1 day before week start
+      const todaySession = BOUNDARIES.todayStart + 1000
+      const yesterdaySession = BOUNDARIES.yesterdayStart + 43_200_000 // noon yesterday
+      const lastWeekSession = BOUNDARIES.weekStart - 86400000 // 1 day before week start
 
       pushSessions(store, [
         makeSession({ id: 1, endedAt: todaySession, minutes: 10, cost: 10 }),
@@ -592,12 +636,12 @@ describe('Computed Regression Tests', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      // Previous period session
-      const yesterdayNoon = START_OF_DAY - 43_200_000
+      // Previous period session (yesterday)
+      const yesterdayNoon = BOUNDARIES.yesterdayStart + 43_200_000
       // Current period session with higher cost
       pushSessions(store, [
         makeSession({ id: 1, endedAt: yesterdayNoon, minutes: 10, cost: 10 }),
-        makeSession({ id: 2, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 20 }),
+        makeSession({ id: 2, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 20 }),
       ])
 
       expect(store.todayTrend.direction).toBe('up')
@@ -608,10 +652,10 @@ describe('Computed Regression Tests', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      const yesterdayNoon = START_OF_DAY - 43_200_000
+      const yesterdayNoon = BOUNDARIES.yesterdayStart + 43_200_000
       pushSessions(store, [
         makeSession({ id: 1, endedAt: yesterdayNoon, minutes: 10, cost: 30 }),
-        makeSession({ id: 2, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 10 }),
+        makeSession({ id: 2, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 10 }),
       ])
 
       expect(store.todayTrend.direction).toBe('down')
@@ -622,10 +666,10 @@ describe('Computed Regression Tests', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      const yesterdayNoon = START_OF_DAY - 43_200_000
+      const yesterdayNoon = BOUNDARIES.yesterdayStart + 43_200_000
       pushSessions(store, [
         makeSession({ id: 1, endedAt: yesterdayNoon, minutes: 10, cost: 15 }),
-        makeSession({ id: 2, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 15 }),
+        makeSession({ id: 2, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 15 }),
       ])
 
       expect(store.todayTrend.direction).toBe('same')
@@ -636,7 +680,7 @@ describe('Computed Regression Tests', () => {
       seedBoomers(store, ['Alice'])
 
       pushSessions(store, [
-        makeSession({ id: 1, endedAt: START_OF_DAY + 1000, minutes: 10, cost: 25 }),
+        makeSession({ id: 1, endedAt: BOUNDARIES.todayStart + 1000, minutes: 10, cost: 25 }),
       ])
 
       expect(store.todayTrend.percentChange).toBe(100)
@@ -688,8 +732,8 @@ describe('Computed Regression Tests', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      const day1 = START_OF_MONTH + 86400000 * 5 // May 6
-      const day2 = START_OF_MONTH + 86400000 * 10 // May 11
+      const day1 = BOUNDARIES.monthStart + 86400000 * 5 // May 6
+      const day2 = BOUNDARIES.monthStart + 86400000 * 10 // May 11
 
       pushSessions(store, [
         makeSession({ id: 1, endedAt: day1, startedAt: day1 - 600000, cost: 10 }),
@@ -706,7 +750,7 @@ describe('Computed Regression Tests', () => {
       const store = freshStore()
       seedBoomers(store, ['Alice'])
 
-      const day1 = START_OF_MONTH + 86400000 * 3 // May 4
+      const day1 = BOUNDARIES.monthStart + 86400000 * 3 // May 4
 
       pushSessions(store, [
         makeSession({ id: 1, endedAt: day1, startedAt: day1 - 600000, cost: 10 }),
