@@ -301,6 +301,19 @@ class PasswordResetApiTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("token", response.data)
 
+    def test_reset_confirm_rejects_weak_password(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+
+        response = self.client.post(
+            "/api/auth/users/reset_password_confirm/",
+            {"uid": uid, "token": token, "new_password": "123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("new_password", response.data)
+
     def test_reset_request_is_non_enumerating_for_existing_and_missing_email(self):
         existing_email_response = self.client.post(
             "/api/auth/users/reset_password/",
