@@ -134,7 +134,7 @@ describe('useBoomerBill Store', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    await store.deleteOrUnimportCategory('token-123', customCategoryId)
+    await store.deleteOrUnimportCategory('Token token-123', customCategoryId)
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining(`/api/category/${encodeURIComponent(customCategoryId)}/remove_or_unimport/`),

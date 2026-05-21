@@ -1,5 +1,6 @@
 """Django settings for core project."""
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -147,11 +148,44 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+AUTH_MODE = env("AUTH_MODE", default="dual").strip().lower()
+
+ENABLE_LEGACY_TOKEN_AUTH = env.bool(
+    "ENABLE_LEGACY_TOKEN_AUTH",
+    default=AUTH_MODE in {"dual", "legacy", "legacy_token", "token"},
+)
+ENABLE_JWT_AUTH = env.bool(
+    "ENABLE_JWT_AUTH",
+    default=AUTH_MODE in {"dual", "jwt"},
+)
+
+if not ENABLE_LEGACY_TOKEN_AUTH and not ENABLE_JWT_AUTH:
+    raise ImproperlyConfigured(
+        "At least one auth mode must be enabled: ENABLE_LEGACY_TOKEN_AUTH or ENABLE_JWT_AUTH"
+    )
+
+JWT_ROTATE_REFRESH_TOKENS = env.bool("JWT_ROTATE_REFRESH_TOKENS", default=True)
+JWT_BLACKLIST_AFTER_ROTATION = env.bool("JWT_BLACKLIST_AFTER_ROTATION", default=True)
+
+if JWT_BLACKLIST_AFTER_ROTATION and not JWT_ROTATE_REFRESH_TOKENS:
+    raise ImproperlyConfigured(
+        "JWT_BLACKLIST_AFTER_ROTATION=True requires JWT_ROTATE_REFRESH_TOKENS=True"
+    )
+
+if ENABLE_JWT_AUTH and JWT_BLACKLIST_AFTER_ROTATION:
+    INSTALLED_APPS.append("rest_framework_simplejwt.token_blacklist")
+
+_authentication_classes = ["rest_framework.authentication.SessionAuthentication"]
+if ENABLE_LEGACY_TOKEN_AUTH:
+    _authentication_classes.insert(0, "rest_framework.authentication.TokenAuthentication")
+if ENABLE_JWT_AUTH:
+    _authentication_classes.insert(
+        0,
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    )
+
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": tuple(_authentication_classes),
 }
 
 DJOSER = {
@@ -165,17 +199,44 @@ DJOSER = {
     ),
 }
 
+if not ENABLE_LEGACY_TOKEN_AUTH:
+    DJOSER["TOKEN_MODEL"] = None
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=15)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=7)
+    ),
+    "ROTATE_REFRESH_TOKENS": JWT_ROTATE_REFRESH_TOKENS,
+    "BLACKLIST_AFTER_ROTATION": JWT_BLACKLIST_AFTER_ROTATION,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "UPDATE_LAST_LOGIN": False,
+}
+
 DOMAIN = env("PUBLIC_DOMAIN", default="localhost:4321")
 SITE_NAME = env("SITE_NAME", default="BoomerBill")
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_CREDENTIALS = env.bool("CORS_ALLOW_CREDENTIALS", default=False)
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+if not DEBUG and CORS_ALLOW_CREDENTIALS and not CORS_ALLOWED_ORIGINS:
+    raise ImproperlyConfigured(
+        "CORS_ALLOWED_ORIGINS must be set when CORS_ALLOW_CREDENTIALS=True and DJANGO_DEBUG=False"
+    )
+
+if any(origin.strip() == "*" for origin in CORS_ALLOWED_ORIGINS):
+    raise ImproperlyConfigured("Wildcard '*' is not allowed in CORS_ALLOWED_ORIGINS")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
+SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="Lax")
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax")
 
 email_provider = env("EMAIL_PROVIDER", default="console").strip().lower()
 if email_provider == "smtp":

@@ -27,8 +27,23 @@ When `DJANGO_DEBUG=False`, the app enforces production-safe startup checks.
 - If `EMAIL_PROVIDER=smtp`, `EMAIL_HOST_PASSWORD` must be set.
 - `DATABASE_URL` should be set to Postgres in production.
 - `DATABASE_SSL_REQUIRE=True` enables `sslmode=require` for Postgres.
+- At least one auth mode must be enabled: `ENABLE_LEGACY_TOKEN_AUTH` or `ENABLE_JWT_AUTH`.
+- `JWT_BLACKLIST_AFTER_ROTATION=True` requires `JWT_ROTATE_REFRESH_TOKENS=True`.
+- Wildcard CORS is blocked (`*` is not allowed in `CORS_ALLOWED_ORIGINS`).
+- If `CORS_ALLOW_CREDENTIALS=True` in production, explicit `CORS_ALLOWED_ORIGINS` are required.
 
 Local development remains functional without `DATABASE_URL`; sqlite is used by default.
+
+## Auth migration mode (legacy token + JWT)
+
+Backend supports dual-mode auth for a safe migration path:
+
+- `AUTH_MODE=dual` (default): enables both legacy token and JWT auth.
+- `AUTH_MODE=legacy_token`: only legacy token auth.
+- `AUTH_MODE=jwt`: only JWT auth.
+
+You can also explicitly override with `ENABLE_LEGACY_TOKEN_AUTH` and `ENABLE_JWT_AUTH`.
+Legacy compatibility endpoints remain available by default (`/api/auth/token/login/`, `/api/auth/token/logout/`) while JWT endpoints are enabled (`/api/auth/jwt/create/`, `/api/auth/jwt/refresh/`, `/api/auth/jwt/verify/`).
 
 ### Validation commands
 
@@ -47,9 +62,25 @@ DJANGO_DEBUG=True uv run python manage.py check
 
 # Passes: production-like config with required values
 DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com DATABASE_SSL_REQUIRE=True uv run python manage.py check
+
+# Fails: both auth modes disabled
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com ENABLE_JWT_AUTH=False ENABLE_LEGACY_TOKEN_AUTH=False uv run python manage.py check
+
+# Fails: invalid JWT rotation/blacklist combination
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com ENABLE_JWT_AUTH=True JWT_ROTATE_REFRESH_TOKENS=False JWT_BLACKLIST_AFTER_ROTATION=True uv run python manage.py check
+
+# Passes: dual-mode transition (recommended rollout default)
+DJANGO_DEBUG=False DJANGO_SECRET_KEY=real-secret DJANGO_ALLOWED_HOSTS=example.com AUTH_MODE=dual ENABLE_JWT_AUTH=True ENABLE_LEGACY_TOKEN_AUTH=True uv run python manage.py check
 ```
 
 See `backend/SECURITY_RUNBOOK.md` for secret rotation and incident response checklists.
+
+## Djoser JWT Migration (Issue 43)
+
+- Default rollout is **dual-mode** (`AUTH_MODE=dual`) to avoid frontend/backend breakage.
+- Legacy token endpoints remain available while JWT clients are deployed.
+- JWT endpoints are enabled via `djoser.urls.jwt` when `ENABLE_JWT_AUTH=True`.
+- Rollback is one env change: set `ENABLE_JWT_AUTH=False` (or `AUTH_MODE=legacy`) and redeploy.
 
 ## SendGrid SMTP on Fly
 

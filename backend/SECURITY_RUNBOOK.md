@@ -17,3 +17,32 @@
 - Invalidate active sessions/tokens if auth-related secrets were exposed.
 - Review audit logs and deployment history to identify unauthorized access.
 - Document timeline, remediation, and follow-up prevention actions.
+
+## JWT Operations & Invalidation Strategy
+
+### Secure defaults
+
+- `AUTH_MODE=dual` during migration, with both `ENABLE_LEGACY_TOKEN_AUTH=True` and `ENABLE_JWT_AUTH=True`.
+- Access token TTL defaults to 15 minutes.
+- Refresh token TTL defaults to 7 days.
+- Refresh token rotation is enabled by default.
+- Blacklisting-after-rotation is enabled by default.
+
+### Emergency token invalidation
+
+1. **Contain**: switch to legacy-only mode if needed (`AUTH_MODE=legacy` or `ENABLE_JWT_AUTH=False`) and deploy.
+2. **Force logout for JWT sessions**:
+   - Rotate `DJANGO_SECRET_KEY` (invalidates all existing JWT signatures).
+   - Keep `JWT_ROTATE_REFRESH_TOKENS=True` and `JWT_BLACKLIST_AFTER_ROTATION=True`.
+   - Revoke compromised refresh tokens via blacklist table (if selective revocation is required).
+3. **Force logout for legacy token sessions**:
+   - Delete/revoke DRF authtokens for affected users (or all users for full invalidation).
+4. **Recover**:
+   - Return to `AUTH_MODE=dual` after verification, then resume migration.
+   - Verify auth/login, refresh, and logout endpoints in each environment.
+
+### Rollback-aware deployment notes
+
+- JWT enable/disable is controlled by environment variables only (no code rollback required).
+- Keep dual-mode until metrics show stable JWT adoption and low auth error rate.
+- Remove legacy token mode only after explicit cutover approval.
