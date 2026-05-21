@@ -299,10 +299,9 @@ def benchmark_session_list(runs: int) -> dict:
     query_counts = []
 
     for _ in range(runs):
-        request = factory.get("/api/sessions/")
-        request.META["SERVER_NAME"] = "localhost"
-        request.META["SERVER_PORT"] = "8000"
-        force_authenticate(request, user=user)
+        wsgi_request = factory.get("/api/sessions/")
+        force_authenticate(wsgi_request, user=user)
+        request = Request(wsgi_request)
 
         with track_queries() as result:
             view = SessionViewSet(request=request)
@@ -345,14 +344,13 @@ def benchmark_sync_push(runs: int) -> dict:
     query_counts = []
 
     for _ in range(runs):
-        request = factory.post(
+        wsgi_request = factory.post(
             "/api/sync/push/",
             data=json.dumps(payload),
             content_type="application/json",
         )
-        request.META["SERVER_NAME"] = "localhost"
-        request.META["SERVER_PORT"] = "8000"
-        force_authenticate(request, user=user)
+        force_authenticate(wsgi_request, user=user)
+        request = Request(wsgi_request)
 
         with track_queries() as result:
             view = SyncPushView()
