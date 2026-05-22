@@ -33,9 +33,9 @@ const modeDescription = computed(() => {
     case 'register':
       return 'Create your account — username, email, and password.'
     case 'forgot':
-      return 'Enter your email and we'll send a reset link.'
+      return "Enter your email and we'll send a reset link.";
     default:
-      return 'Sign in to sync your BoomerBill data.'
+      return 'Sign in to sync your BoomerBill data.';
   }
 })
 
@@ -164,51 +164,28 @@ watch(mode, () => {
 
 <template>
   <Teleport to="body">
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 auth-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="auth-modal-title"
-      @click="handleBackdropClick"
-    >
-      <div
-        ref="modalRef"
-        class="card bg-base-200 border border-primary shadow-xl w-full max-w-md animate-fade-in"
-      >
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 auth-modal-backdrop" role="dialog"
+      aria-modal="true" aria-labelledby="auth-modal-title" @click="handleBackdropClick">
+      <div ref="modalRef" class="card bg-base-200 border border-primary shadow-xl w-full max-w-md animate-fade-in">
         <div class="card-body">
           <div class="flex items-center justify-between">
             <h2 id="auth-modal-title" class="card-title text-lg">{{ modeTitle }}</h2>
-            <button
-              class="btn btn-ghost btn-sm btn-circle"
-              aria-label="Close"
-              @click="emit('close')"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button class="btn btn-ghost btn-sm btn-circle" aria-label="Close" @click="emit('close')">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           <div class="tabs tabs-boxed w-fit">
-            <button
-              class="tab"
-              :class="{ 'tab-active': mode === 'login' }"
-              @click="setMode('login')"
-            >
+            <button class="tab" :class="{ 'tab-active': mode === 'login' }" @click="setMode('login')">
               Sign in
             </button>
-            <button
-              class="tab"
-              :class="{ 'tab-active': mode === 'register' }"
-              @click="setMode('register')"
-            >
+            <button class="tab" :class="{ 'tab-active': mode === 'register' }" @click="setMode('register')">
               Create account
             </button>
-            <button
-              class="tab"
-              :class="{ 'tab-active': mode === 'forgot' }"
-              @click="setMode('forgot')"
-            >
+            <button class="tab" :class="{ 'tab-active': mode === 'forgot' }" @click="setMode('forgot')">
               Reset password
             </button>
           </div>
@@ -219,39 +196,21 @@ watch(mode, () => {
           <form class="mt-2 space-y-3" @submit.prevent="submit">
             <label v-if="mode !== 'forgot'" class="form-control w-full gap-1">
               <span class="label-text">Username</span>
-              <input
-                ref="firstInputRef"
-                v-model="username"
-                type="text"
-                autocomplete="username"
-                class="input input-bordered w-full"
-                placeholder="your username"
-                required
-              />
+              <input ref="firstInputRef" v-model="username" type="text" autocomplete="username"
+                class="input input-bordered w-full" placeholder="your username" required />
             </label>
 
             <label v-if="mode !== 'login'" class="form-control w-full gap-1">
               <span class="label-text">Email</span>
-              <input
-                v-model="email"
-                type="email"
-                autocomplete="email"
-                class="input input-bordered w-full"
-                placeholder="you@example.com"
-                required
-              />
+              <input v-model="email" type="email" autocomplete="email" class="input input-bordered w-full"
+                placeholder="you@example.com" required />
             </label>
 
             <label v-if="mode !== 'forgot'" class="form-control w-full gap-1">
               <span class="label-text">Password</span>
-              <input
-                v-model="password"
-                type="password"
+              <input v-model="password" type="password"
                 :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
-                class="input input-bordered w-full"
-                placeholder="your password"
-                required
-              />
+                class="input input-bordered w-full" placeholder="your password" required />
             </label>
 
             <p v-if="successMessage" class="text-sm text-success" role="status">{{ successMessage }}</p>
@@ -260,9 +219,9 @@ watch(mode, () => {
             <button class="btn btn-primary w-full" type="submit" :disabled="isSubmitting">
               {{ submitLabel }}
             </button>
-          <button class="btn btn-ghost w-full" type="button" @click="emit('close')">
-            Continue as guest
-          </button>
+            <button class="btn btn-ghost w-full" type="button" @click="emit('close')">
+              Continue as guest
+            </button>
           </form>
         </div>
       </div>
@@ -276,6 +235,7 @@ watch(mode, () => {
     opacity: 0;
     transform: scale(0.95) translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
