@@ -91,15 +91,15 @@ onMounted(() => {
               >
                 Settings
               </button>
-              <button
+              <!-- <button
                 class="btn btn-sm"
                 :class="currentView === 'community' ? 'btn-primary' : 'btn-ghost'"
                 @click="currentView = 'community'"
               >
                 Community
-              </button>
+              </button> -->
             </div>
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
               <span v-if="auth.isAuthenticated" class="badge badge-outline badge-sm">{{ syncLabel }}</span>
               <span v-if="auth.isAuthenticated" class="text-xs opacity-70">@{{ auth.username || 'user' }}</span>
               <button
@@ -116,18 +116,18 @@ onMounted(() => {
               >
                 Sign in / Create account
               </button>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
 
-      <LoginPage
+      <!-- <LoginPage
         v-if="showAuthPanel && !auth.isAuthenticated"
         @close="showAuthPanel = false"
         @authenticated="showAuthPanel = false"
-      />
+      /> -->
 
-      <div v-if="!auth.isAuthenticated" class="alert border border-primary/40 bg-base-200">
+      <!-- <div v-if="!auth.isAuthenticated" class="alert border border-primary/40 bg-base-200">
         <div class="w-full flex flex-wrap items-center justify-between gap-2">
           <span class="text-sm">{{ guestConversionCopy }}</span>
           <button class="btn btn-xs btn-primary" @click="showAuthPanel = true">Create free account</button>
@@ -136,7 +136,7 @@ onMounted(() => {
 
       <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm">
         Sync unlock: backup your data, use community follow/replies, and keep history across phones.
-      </div>
+      </div> -->
 
       <MobileAppDrive />
 
@@ -144,7 +144,7 @@ onMounted(() => {
       <DashboardPage v-else-if="currentView === 'dashboard'" />
       <LoggingPage v-else-if="currentView === 'logging'" />
       <SettingsPage v-else-if="currentView === 'settings'" />
-      <CommunityPage v-else />
+      <div v-else />
     </template>
   </div>
 </template>
