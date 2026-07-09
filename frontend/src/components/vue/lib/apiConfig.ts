@@ -8,7 +8,7 @@
  *   4. Hard default (https://api.boomerbill.net)
  */
 
-const HARD_DEFAULT = 'https://api.boomerbill.net'
+export const HARD_DEFAULT = 'https://api.boomerbill.net'
 const USER_OVERRIDE_KEY = 'bb_api_endpoint_override'
 const TEST_ENDPOINT = '/api/health/'
 
