@@ -60,7 +60,7 @@ describe('Totals.vue', () => {
     const wrapper = mount(Totals, { global: { plugins: [pinia] } })
     
     const summary = wrapper.find('.text-xs')
-    expect(summary.text()).toContain('You lost')
+    expect(summary.text()).toContain('in damage')
   })
 
   it('formats cost with 2 decimal places', () => {
@@ -79,6 +79,6 @@ describe('Totals.vue', () => {
     store.addSession({ minutes: 30, note: 'Test', endedAt: Date.now() })
 
     const wrapper = mount(Totals, { global: { plugins: [pinia] } })
-    expect(wrapper.find('.text-xs').text()).toContain('You lost')
+    expect(wrapper.find('.text-xs').text()).toContain('in damage')
   })
 })

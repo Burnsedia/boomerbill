@@ -204,7 +204,7 @@ describe('Computed Regression Tests', () => {
 
     it('weeklySummary shows $0.00 when no sessions exist', () => {
       const store = freshStore()
-      expect(store.weeklySummary).toBe('You lost $0.00 this week.')
+      expect(store.weeklySummary).toBe('No damage this week — yet.')
     })
 
     it('costPerMinute is rate/60 regardless of sessions', () => {

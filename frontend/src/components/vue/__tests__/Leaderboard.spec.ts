@@ -73,7 +73,7 @@ describe('Leaderboard.vue', () => {
     
     const wrapper = mount(Leaderboard, { global: { plugins: [pinia] } })
     
-    expect(wrapper.text()).toContain('Painful')
+    expect(wrapper.text()).toContain('Ouch')
   })
 
   it('displays note when present', () => {

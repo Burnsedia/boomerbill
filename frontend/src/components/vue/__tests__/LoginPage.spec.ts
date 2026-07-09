@@ -4,6 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 // @ts-expect-error - Vue files not typed in tests
 import LoginPage from '../LoginPage.vue'
 
+const teleportStub = { template: '<div><slot /></div>' }
+
 describe('LoginPage.vue', () => {
   beforeEach(() => {
     const pinia = createPinia()
@@ -11,10 +13,20 @@ describe('LoginPage.vue', () => {
     vi.clearAllMocks()
   })
 
-  it('renders login form fields', () => {
+  function mountPage() {
     const pinia = createPinia()
     setActivePinia(pinia)
-    const wrapper = mount(LoginPage, { global: { plugins: [pinia] } })
+    const wrapper = mount(LoginPage, {
+      global: {
+        plugins: [pinia],
+        stubs: { Teleport: teleportStub }
+      }
+    })
+    return { wrapper, pinia }
+  }
+
+  it('renders login form fields', () => {
+    const { wrapper } = mountPage()
 
     expect(wrapper.text()).toContain('Sign in')
     expect(wrapper.find('input[type="text"]').exists()).toBe(true)
@@ -22,15 +34,13 @@ describe('LoginPage.vue', () => {
   })
 
   it('shows error on failed login', async () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
+    const { wrapper } = mountPage()
 
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       json: async () => ({ non_field_errors: ['Invalid credentials'] })
     }) as unknown as typeof fetch
 
-    const wrapper = mount(LoginPage, { global: { plugins: [pinia] } })
     await wrapper.find('input[type="text"]').setValue('tester')
     await wrapper.find('input[type="password"]').setValue('bad-password')
     await wrapper.find('form').trigger('submit.prevent')
@@ -40,8 +50,7 @@ describe('LoginPage.vue', () => {
   })
 
   it('registers and then logs in', async () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
+    const { wrapper } = mountPage()
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1, username: 'newuser' }) })
@@ -51,7 +60,6 @@ describe('LoginPage.vue', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ created: 0, skipped: 0, total: 0 }) })
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
-    const wrapper = mount(LoginPage, { global: { plugins: [pinia] } })
     await wrapper.findAll('button.tab')[1].trigger('click')
     await wrapper.find('input[type="text"]').setValue('newuser')
     await wrapper.find('input[type="email"]').setValue('newuser@example.com')
