@@ -135,7 +135,8 @@ onUnmounted(() => {
               <!--   > -->
               <!--     Community -->
               <!--   </button> -->
-              <!-- </div> -->
+              </div>
+              <!-- -->
               <div class="flex items-center gap-2 flex-shrink-0">
               <!-- <template v-if="auth.isAuthenticated"> -->
               <!--   <StatusIndicator -->
