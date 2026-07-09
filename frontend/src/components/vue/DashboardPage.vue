@@ -213,7 +213,7 @@ const lastSessionSummary = computed(() => {
 
     <!-- Secondary: Top Culprits - supporting info -->
     <div v-if="topBoomer || topCategory || store.peakDayThisMonth.day || mostFrequentCategory" class="card-standard rounded-xl">
-      <div class="card-body">
+      <div class="card-elevated rounded-xl">
         <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg font-semibold">Top Culprits</summary>
           <div class="collapse-content">
@@ -245,7 +245,7 @@ const lastSessionSummary = computed(() => {
     </div>
 
     <!-- Secondary: Averages -->
-    <div class="card-standard rounded-xl">
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title font-mono text-lg font-semibold">Averages</summary>
@@ -353,7 +353,7 @@ const lastSessionSummary = computed(() => {
     </div>
 
     <!-- Secondary: Historical Damage -->
-    <div class="card-standard rounded-xl">
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title font-mono text-lg font-semibold">Historical Damage</summary>
@@ -409,7 +409,7 @@ const lastSessionSummary = computed(() => {
     </div>
 
     <!-- Secondary: Recent Sessions -->
-    <div v-if="recentSessions.length > 0" class="card-standard rounded-xl">
+    <div v-if="recentSessions.length > 0" class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg font-semibold">Recent Sessions</summary>
@@ -436,7 +436,7 @@ const lastSessionSummary = computed(() => {
     </div>
 
     <!-- Secondary: Leaderboards -->
-    <div class="card-standard rounded-xl">
+    <div class="card-elevated rounded-xl">
       <div class="card-body">
         <details open class="collapse collapse-arrow collapse-open">
           <summary class="collapse-title text-lg font-semibold">Leaderboards</summary>
