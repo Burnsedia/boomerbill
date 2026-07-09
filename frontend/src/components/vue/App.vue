@@ -128,49 +128,49 @@ onUnmounted(() => {
                 >
                   Settings
                 </button>
-                <button
-                  class="btn btn-sm tap-target-min priority-item"
-                  :class="currentView === 'community' ? 'btn-primary' : 'btn-ghost'"
-                  @click="currentView = 'community'"
-                >
-                  Community
-                </button>
-              </div>
+              <!--   <button -->
+              <!--     class="btn btn-sm tap-target-min priority-item" -->
+              <!--     :class="currentView === 'community' ? 'btn-primary' : 'btn-ghost'" -->
+              <!--     @click="currentView = 'community'" -->
+              <!--   > -->
+              <!--     Community -->
+              <!--   </button> -->
+              <!-- </div> -->
               <div class="flex items-center gap-2 flex-shrink-0">
-              <template v-if="auth.isAuthenticated">
-                <StatusIndicator
-                  v-if="store.syncStatus === 'syncing'"
-                  state="syncing"
-                  message="Syncing..."
-                />
-                <StatusIndicator
-                  v-else-if="store.syncStatus === 'error'"
-                  state="sync-error"
-                  message="Sync error"
-                  action-label="Retry"
-                  @action="store.persist()"
-                />
-                <StatusIndicator
-                  v-else-if="store.syncStatus === 'synced'"
-                  state="synced"
-                  :message="!store.lastSyncedAt ? 'Synced' : `Synced ${new Date(store.lastSyncedAt).toLocaleTimeString()}`"
-                />
-              </template>
-              <span v-if="auth.isAuthenticated" class="text-xs opacity-70">@{{ auth.username || 'user' }}</span>
-              <button
-                v-if="auth.isAuthenticated"
-                class="btn btn-sm btn-outline"
-                @click="auth.logout"
-              >
-                Logout
-              </button>
-              <button
-                v-else
-                class="btn btn-sm btn-primary"
-                @click="showAuthPanel = true"
-              >
-                Sign in
-              </button>
+              <!-- <template v-if="auth.isAuthenticated"> -->
+              <!--   <StatusIndicator -->
+              <!--     v-if="store.syncStatus === 'syncing'" -->
+              <!--     state="syncing" -->
+              <!--     message="Syncing..." -->
+              <!--   /> -->
+              <!--   <StatusIndicator -->
+              <!--     v-else-if="store.syncStatus === 'error'" -->
+              <!--     state="sync-error" -->
+              <!--     message="Sync error" -->
+              <!--     action-label="Retry" -->
+              <!--     @action="store.persist()" -->
+              <!--   /> -->
+              <!--   <StatusIndicator -->
+              <!--     v-else-if="store.syncStatus === 'synced'" -->
+              <!--     state="synced" -->
+              <!--     :message="!store.lastSyncedAt ? 'Synced' : `Synced ${new Date(store.lastSyncedAt).toLocaleTimeString()}`" -->
+              <!--   /> -->
+              <!-- </template> -->
+              <!-- <span v-if="auth.isAuthenticated" class="text-xs opacity-70">@{{ auth.username || 'user' }}</span> -->
+              <!-- <button -->
+              <!--   v-if="auth.isAuthenticated" -->
+              <!--   class="btn btn-sm btn-outline" -->
+              <!--   @click="auth.logout" -->
+              <!-- > -->
+              <!--   Logout -->
+              <!-- </button> -->
+              <!-- <button -->
+              <!--   v-else -->
+              <!--   class="btn btn-sm btn-primary" -->
+              <!--   @click="showAuthPanel = true" -->
+              <!-- > -->
+              <!--   Sign in -->
+              <!-- </button> -->
             </div>
           </div>
         </div>
