@@ -193,9 +193,7 @@ onUnmounted(() => {
       <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm">
         Sign in to back up your data, join the community, and keep your history across devices.
       </div>
-
       <MobileAppDrive />
-
       <SessionPage v-if="currentView === 'session'" />
       <DashboardPage v-else-if="currentView === 'dashboard'" />
       <LoggingPage v-else-if="currentView === 'logging'" />
