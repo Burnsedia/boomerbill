@@ -1,5 +1,17 @@
 # Devlog for BoomerBill
 
+## 2026-07-09
+
+### Move to PWA
+
+- remove backend access
+- removed login
+- removed custom backend configurable
+
+### Design Update
+
+- refactoring design 
+
 ## 2026-05-21
 
 ### Repository hygiene cleanup
