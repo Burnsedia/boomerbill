@@ -192,85 +192,85 @@ async function sendRecoveryEmail() {
     </div>
 
     <!-- API Endpoint Configuration -->
-    <div class="card bg-base-200 border border-primary shadow-lg">
-      <div class="card-body gap-3">
-        <h3 class="card-title text-base">API Endpoint</h3>
-        <p class="text-sm text-base-content/75">
-          Configure the API server URL. All data and authentication traffic is sent to this endpoint.
-        </p>
-
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-base-content/70">Active:</span>
-            <code class="text-xs bg-base-300 px-2 py-1 rounded flex-1 truncate">{{ activeEndpoint }}</code>
-            <span class="text-xs badge badge-outline badge-sm">{{ sourceLabel }}</span>
-          </div>
-
-          <div v-if="isProd" class="alert alert-warning py-2 px-3 text-xs">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            <span>Authentication traffic is sent to the configured endpoint. Only use trusted URLs.</span>
-          </div>
-
-          <div v-if="!isEditingEndpoint" class="flex gap-2 flex-wrap">
-            <button class="btn btn-sm btn-outline" @click="startEditing">
-              Change endpoint
-            </button>
-            <button
-              v-if="isUserOverride"
-              class="btn btn-sm btn-ghost"
-              @click="resetEndpoint"
-            >
-              Reset to default
-            </button>
-          </div>
-
-          <div v-if="isEditingEndpoint" class="flex flex-col gap-2">
-            <label class="form-control w-full">
-              <div class="label">
-                <span class="label-text text-xs">API Endpoint URL</span>
-              </div>
-              <input
-                v-model="pendingEndpoint"
-                type="url"
-                class="input input-bordered input-sm w-full"
-                placeholder="https://api.boomerbill.net"
-                @input="apiEndpointError = ''"
-              />
-            </label>
-
-            <p v-if="apiEndpointError" class="text-xs text-error">{{ apiEndpointError }}</p>
-
-            <div class="flex gap-2 flex-wrap">
-              <button
-                class="btn btn-sm"
-                :class="apiTestResult === 'testing' ? 'btn-disabled' : 'btn-outline'"
-                :disabled="apiTestResult === 'testing'"
-                @click="testConnection"
-              >
-                {{ apiTestResult === 'testing' ? 'Testing...' : 'Test Connection' }}
-              </button>
-              <button
-                class="btn btn-sm btn-primary"
-                @click="saveEndpoint"
-              >
-                Save
-              </button>
-              <button
-                class="btn btn-sm btn-ghost"
-                @click="cancelEditing"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <p v-if="apiTestResult === 'success'" class="text-xs text-success">{{ apiTestMessage }}</p>
-            <p v-if="apiTestResult === 'failure'" class="text-xs text-error">{{ apiTestMessage }}</p>
-          </div>
-        </div>
-
-        <p v-if="apiEndpointMessage" class="text-xs text-success">{{ apiEndpointMessage }}</p>
-      </div>
-    </div>
+    <!-- <div class="card bg-base-200 border border-primary shadow-lg"> -->
+    <!--   <div class="card-body gap-3"> -->
+    <!--     <h3 class="card-title text-base">API Endpoint</h3> -->
+    <!--     <p class="text-sm text-base-content/75"> -->
+    <!--       Configure the API server URL. All data and authentication traffic is sent to this endpoint. -->
+    <!--     </p> -->
+    <!---->
+    <!--     <div class="flex flex-col gap-2"> -->
+    <!--       <div class="flex items-center gap-2"> -->
+    <!--         <span class="text-xs font-semibold text-base-content/70">Active:</span> -->
+    <!--         <code class="text-xs bg-base-300 px-2 py-1 rounded flex-1 truncate">{{ activeEndpoint }}</code> -->
+    <!--         <span class="text-xs badge badge-outline badge-sm">{{ sourceLabel }}</span> -->
+    <!--       </div> -->
+    <!---->
+    <!--       <div v-if="isProd" class="alert alert-warning py-2 px-3 text-xs"> -->
+    <!--         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> -->
+    <!--         <span>Authentication traffic is sent to the configured endpoint. Only use trusted URLs.</span> -->
+    <!--       </div> -->
+    <!---->
+    <!--       <div v-if="!isEditingEndpoint" class="flex gap-2 flex-wrap"> -->
+    <!--         <button class="btn btn-sm btn-outline" @click="startEditing"> -->
+    <!--           Change endpoint -->
+    <!--         </button> -->
+    <!--         <button -->
+    <!--           v-if="isUserOverride" -->
+    <!--           class="btn btn-sm btn-ghost" -->
+    <!--           @click="resetEndpoint" -->
+    <!--         > -->
+    <!--           Reset to default -->
+    <!--         </button> -->
+    <!--       </div> -->
+    <!---->
+    <!--       <div v-if="isEditingEndpoint" class="flex flex-col gap-2"> -->
+    <!--         <label class="form-control w-full"> -->
+    <!--           <div class="label"> -->
+    <!--             <span class="label-text text-xs">API Endpoint URL</span> -->
+    <!--           </div> -->
+    <!--           <input -->
+    <!--             v-model="pendingEndpoint" -->
+    <!--             type="url" -->
+    <!--             class="input input-bordered input-sm w-full" -->
+    <!--             placeholder="https://api.boomerbill.net" -->
+    <!--             @input="apiEndpointError = ''" -->
+    <!--           /> -->
+    <!--         </label> -->
+    <!---->
+    <!--         <p v-if="apiEndpointError" class="text-xs text-error">{{ apiEndpointError }}</p> -->
+    <!---->
+    <!--         <div class="flex gap-2 flex-wrap"> -->
+    <!--           <button -->
+    <!--             class="btn btn-sm" -->
+    <!--             :class="apiTestResult === 'testing' ? 'btn-disabled' : 'btn-outline'" -->
+    <!--             :disabled="apiTestResult === 'testing'" -->
+    <!--             @click="testConnection" -->
+    <!--           > -->
+    <!--             {{ apiTestResult === 'testing' ? 'Testing...' : 'Test Connection' }} -->
+    <!--           </button> -->
+    <!--           <button -->
+    <!--             class="btn btn-sm btn-primary" -->
+    <!--             @click="saveEndpoint" -->
+    <!--           > -->
+    <!--             Save -->
+    <!--           </button> -->
+    <!--           <button -->
+    <!--             class="btn btn-sm btn-ghost" -->
+    <!--             @click="cancelEditing" -->
+    <!--           > -->
+    <!--             Cancel -->
+    <!--           </button> -->
+    <!--         </div> -->
+    <!---->
+    <!--         <p v-if="apiTestResult === 'success'" class="text-xs text-success">{{ apiTestMessage }}</p> -->
+    <!--         <p v-if="apiTestResult === 'failure'" class="text-xs text-error">{{ apiTestMessage }}</p> -->
+    <!--       </div> -->
+    <!--     </div> -->
+    <!---->
+    <!--     <p v-if="apiEndpointMessage" class="text-xs text-success">{{ apiEndpointMessage }}</p> -->
+    <!--   </div> -->
+    <!-- </div> -->
 
     <div class="card bg-base-200 border border-primary shadow-lg">
       <div class="card-body gap-4">
