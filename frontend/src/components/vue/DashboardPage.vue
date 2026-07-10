@@ -275,18 +275,11 @@ const lastSessionSummary = computed(() => {
                 />
               </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div class="items-center gap-4 mt-4">
               <TimeStatCard
                 title="Avg Session Time"
                 :minutes="filteredAvgSessionTimeRounded"
                 :cost="store.costPerMinute * filteredAvgSessionTime"
-                :count="0"
-                :costPrecision="2"
-              />
-              <TimeStatCard
-                title="Avg Cost / Session"
-                :minutes="filteredAvgSessionTimeRounded"
-                :cost="avgCostPerSession"
                 :count="0"
                 :costPrecision="2"
               />
