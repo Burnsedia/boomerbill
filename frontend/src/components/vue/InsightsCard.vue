@@ -23,7 +23,6 @@ function formatMinutes(minutes: number) {
 <template>
   <div class="card-standard rounded-lg shadow-none border-0">
     <div class="card-body p-0">
-      <h3 class="card-title text-lg font-semibold mb-2">Key Insights</h3>
       <div class="stats stats-vertical lg:stats-horizontal bg-transparent">
         <div class="stat px-2">
           <div class="stat-title text-base-content/60">Most Expensive Boomer</div>
