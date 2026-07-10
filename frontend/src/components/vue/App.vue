@@ -176,23 +176,20 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-
       <LoginPage
         v-if="showAuthPanel && !auth.isAuthenticated"
         @close="showAuthPanel = false"
         @authenticated="showAuthPanel = false"
       />
-
-      <div v-if="!auth.isAuthenticated" class="alert border border-primary/40 bg-base-200">
-        <div class="w-full flex flex-wrap items-center justify-between gap-2">
-          <span class="text-sm">{{ guestConversionCopy }}</span>
-          <button class="btn btn-xs btn-primary" @click="showAuthPanel = true">Create free account</button>
-        </div>
-      </div>
-
-      <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm">
-        Sign in to back up your data, join the community, and keep your history across devices.
-      </div>
+      <!-- <div v-if="!auth.isAuthenticated" class="alert border border-primary/40 bg-base-200"> -->
+      <!--   <div class="w-full flex flex-wrap items-center justify-between gap-2"> -->
+      <!--     <span class="text-sm">{{ guestConversionCopy }}</span> -->
+      <!--     <button class="btn btn-xs btn-primary" @click="showAuthPanel = true">Create free account</button> -->
+      <!--   </div> -->
+      <!-- </div> -->
+      <!-- <div v-if="!auth.isAuthenticated && hasLocalData" class="alert border border-secondary/40 bg-base-200 text-sm"> -->
+      <!--   Sign in to back up your data, join the community, and keep your history across devices. -->
+      <!-- </div> -->
       <MobileAppDrive />
       <SessionPage v-if="currentView === 'session'" />
       <DashboardPage v-else-if="currentView === 'dashboard'" />
